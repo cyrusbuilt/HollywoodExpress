@@ -1,0 +1,73 @@
+@INCLUDE "StringLib/StringUtils.hws"
+
+Const #EXP_LOG_MODE_CONSOLE_ONLY = 0
+Const #EXP_LOG_MODE_FILE_ONLY = 1
+Const #EXP_LOG_MODE_FILE_AND_CONSOLE = 2
+
+Global Logger = {}
+Logger.mode = #EXP_LOG_MODE_CONSOLE_ONLY
+Logger._fileId = Nil
+Logger._canWrite = False
+
+Function Logger:New(logMode, filePath)
+    If GetType(logMode) <> #NUMBER Then logMode = #EXP_LOG_MODE_CONSOLE_ONLY
+
+    Local instance = CopyTable(self)
+    instance.mode = logMode
+
+    If logMode = #EXP_LOG_MODE_FILE_AND_CONSOLE Or logMode = #EXP_LOG_MODE_FILE_ONLY
+        If StringUtils.IsEmpty(filePath)
+            filePath = "server.log"
+        EndIf
+
+        If Exists(filePath)
+            DeleteFile(filePath)
+        EndIf
+
+        instance._fileId = OpenFile(Nil, filePath, #MODE_READWRITE)
+        instance._canWrite = IIf(IsNil(instance._fileId), False, True)
+    EndIf
+
+    Return (instance)
+EndFunction
+
+Function Logger:_writeFile(msg)
+    If self.mode = #EXP_LOG_MODE_FILE_AND_CONSOLE Or self.mode = #EXP_LOG_MODE_FILE_ONLY
+        If self._canWrite
+            WriteLine(self._fileId, msg)
+        EndIf
+    EndIf
+EndFunction
+
+Function Logger:Info(msg)
+    If StringUtils.IsEmpty(msg) Then Return ()
+
+    msg = "[INFO] " .. msg
+    If self.mode = #EXP_LOG_MODE_CONSOLE_ONLY Or self.mode = #EXP_LOG_MODE_FILE_AND_CONSOLE
+        NPrint(msg)
+    EndIf
+
+    self:_writeFile(msg)
+EndFunction
+
+Function Logger:Debug(msg)
+    If StringUtils.IsEmpty(msg) Then Return ()
+
+    msg = "[DEBUG] " .. msg
+    If self.mode = #EXP_LOG_MODE_CONSOLE_ONLY Or self.mode = #EXP_LOG_MODE_FILE_AND_CONSOLE
+        DebugPrint(msg)
+    EndIf
+
+    self._writeFile(msg)
+EndFunction
+
+Function Logger:Error(msg)
+    If StringUtils.IsEmpty(msg) Then Return ()
+
+    msg = "[ERROR] " .. msg
+    If self.mode = #EXP_LOG_MODE_CONSOLE_ONLY Or self.mode = #EXP_LOG_MODE_FILE_AND_CONSOLE
+        NPrint(msg)
+    EndIf
+
+    self._writeFile(msg)
+EndFunction

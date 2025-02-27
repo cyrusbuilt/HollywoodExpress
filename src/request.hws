@@ -1,0 +1,185 @@
+@INCLUDE "StringLib/StringUtils.hws"
+@INCLUDE "request.hws"
+@INCLUDE "response.hws"
+@INCLUDE "util.hws"
+
+Const #REQ_PATTERN_METHOD = "^(.-)%s"
+Const #REQ_PATTERN_PATH = "(%S+)%s*"
+Const #REQ_PATTERN_PROTOCOL = "(HTTP%/%d%.%d)"
+Const #REQ_PATTERN_REQUEST = (#REQ_PATTERN_METHOD .. #REQ_PATTERN_PATH .. #REQ_PATTERN_PROTOCOL)
+Const #REQ_PATTERN_QUERY_STRING = "([^=]*)=([^&]*)&?"
+Const #REQ_PATTERN_HEADER = "([%w-]+):[ \t]*([%w \t%p]*)"
+
+Global Request = {}
+Request.client = {}
+Request.server = {}
+Request.log = {}
+Request.port = 8080
+Request.ip = "*"
+Request.queryString = {}
+Request._firstLine = Nil
+Request._method = Nil
+Request._path = Nil
+Request._params = {}
+Request._headerParsed = False
+Request._headers = {}
+Request._contentDone = 0
+Request._contentLength = Nil
+Request.response = {}
+
+Function Request:New(port, client, server, handler)
+    If GetType(client) <> #TABLE Then client = {}
+    If GetType(server) <> #TABLE Then server = {}
+    If GetType(handler) <> #TABLE Then handler = {}
+    If GetType(port) <> #NUMBER Then port = 8080
+
+    Local instance = CopyTable(self)
+    instance.client = client
+    instance.server = server
+    instance.log = IIf(HaveItem(handler, "log"), handler.log, {})
+    instance.port = port
+    instance.ip = IIf(HaveItem(client, "ip"), client.ip, "*")
+    instance.response = Response:New(client, handler)
+    instance.response.request = instance
+    Return (instance)
+EndFunction
+
+Function Request:ParseUrlEncoded(data)
+    Local output = {}
+    If Not StringUtils.IsEmpty(data)
+        For key, value In PatternFindStr(data, #REQ_PATTERN_QUERY_STRING)
+            If Not StringUtils.IsEmpty(key) And Not StringUtils.IsEmpty(value)
+                Local v = RawGet(output, key)
+                If IsNil(v)
+                    output[key] = value
+                ElseIf GetType(v) = #STRING
+                    output[key] = { v, value}
+                Else
+                    ; v is a table
+                    v[ListItems(v) + 1] = value
+                EndIf
+            EndIf
+        Next
+    EndIf
+
+    Return (output)
+EndFunction
+
+Function Request:ParseFirstLine()
+    If Not StringUtils.IsEmpty(self._firstLine)
+        Return ()
+    EndIf
+
+    Local count = 0
+    Local done = False
+    self._firstLine, count, done = self.client:Receive()
+    If IsNil(self._firstLine) Or done Or count = 0
+        Return ()
+    EndIf
+
+    ; Parse firstline http: METHOD PATH
+    ; GET Makefile HTTP/1.1
+    Local method, path = PatternFindStrShort(self._firstLine, #REQ_PATTERN_REQUEST)
+    If StringUtils.IsEmpty(method)
+        self.client:Close()
+        Return ()
+    EndIf
+
+    self.response:SkipBody(method = "HEAD")
+    self.log:Info(FormatStr("Request for: %s %s", method, path))
+    
+    Local filename = StringUtils.EMPTY
+    Local querystring = StringUtils.EMPTY
+
+    If Not StringUtils.IsEmpty(path)
+        filename, querystring = PatternFindStrShort(path, "^([^#?]+)[#|?]?(.*)")
+        filename = HEUtils.NormalizePath(filename)
+    EndIf
+
+    self._path = filename
+    self._method = method
+    self._queryString = self:ParseUrlEncoded(querystring)
+EndFunction
+
+Function Request:Method()
+    self:ParseFirstLine()
+    Return (self._method)
+EndFunction
+
+Function Request:Path()
+    self:ParseFirstLine()
+    Return (self._path)
+EndFunction
+
+Function Request:Headers()
+    If self._headerParsed
+        Return (self._headers)
+    EndIf
+
+    self:ParseFirstLine()
+    Local data = self.client:Receive(Nil)
+
+    Local headers = SetMetaTable({}, {
+        __index = Function(self, key)
+            If GetType(key) = #STRING
+                key = LowerStr(key)
+                Return (RawGet(self, key))
+            EndIf
+        EndFunction
+    })
+
+    While Not StringUtils.IsEmpty(data)
+        Local _n = Nil
+        Local key, value = PatternFindStr(data, #REQ_PATTERN_HEADER)
+        If Not StringUtils.IsEmpty(key) And Not StringUtils.IsEmpty(value)
+            key = LowerStr(key)
+            value, _n = PatternReplaceStr(value, "%s+$", "")  ; trim trailing whitespace
+            Local v = headers[key]
+            If StringUtils.IsEmpty(v)
+                headers[key] = value
+            ElseIf GetType(v) = #STRING
+                headers[key] = { v, value }
+            Else
+                v[ListItems(v) + 1] = value
+            EndIf
+        EndIf
+
+        data = self.client:Receive(Nil)
+    Wend
+
+    self._headerParsed = True
+    Local len = RawGet(headers, "content-length")
+    If StringUtils.IsEmpty(len) Then len = 0
+    self._contentLength = ToNumber(len)
+    self._headers = headers
+
+    Return (headers)
+EndFunction
+
+Function Request:ReceiveBody(size)
+    If Not self._headerParsed
+        self:Headers()
+    EndIf
+
+    Local contentLength = self._contentLength
+    Local contentDone = self._contentDone
+    If GetType(size) <> #NUMBER Or size < 1 Then size = contentLength
+
+    ; Do we have content?
+    If IsNil(self._contentLength) Or (contentLength >= contentDone)
+        Return (Nil)
+    EndIf
+
+    ; Fetch in chunks
+    Local fetch = Min(contentLength - contentDone, size)
+    Local data, count, done = self.client:Receive(fetch)
+    self._contentDone = contentDone + StringUtils.StringLength(data)
+
+    Return (data)
+EndFunction
+
+Function Request:Post()
+    If self:Method() <> "POST" Then Return (Nil)
+    Local data = self:ReceiveBody(Nil)
+    Return (self:ParseUrlEncoded(data))
+EndFunction

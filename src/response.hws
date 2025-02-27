@@ -1,0 +1,290 @@
+@INCLUDE "StringLib/StringBuilder.hws"
+@INCLUDE "StringLib/StringUtils.hws"
+@INCLUDE "mimetypes.hws"
+@INCLUDE "util.hws"
+
+Global STATUS_TEXT = SetMetaTable({
+    [100] = "Continue",
+    [101] = "Switching Protocols",
+    [200] = "OK",
+    [201] = "Created",
+    [202] = "Accepted",
+    [203] = "Non-Authoritative Information",
+    [204] = "No Content",
+    [205] = "Reset Content",
+    [206] = "Partial Content",
+    [300] = "Multiple Choices",
+    [301] = "Moved Permanently",
+    [302] = "Found",
+    [303] = "See Other",
+    [304] = "Not Modified",
+    [305] = "Use Proxy",
+    [307] = "Temporary Redirect",
+    [400] = "Bad Request",
+    [401] = "Unauthorized",
+    [402] = "Payment Required",
+    [403] = "Forbidden",
+    [404] = "Not Found",
+    [405] = "Method Not Allowed",
+    [406] = "Not Acceptable",
+    [407] = "Proxy Authentication Required",
+    [408] = "Request Time-Out",
+    [409] = "Conflict",
+    [410] = "Gone",
+    [411] = "Length Required",
+    [412] = "Precondition Failed",
+    [413] = "Request Entity Too Large",
+    [414] = "Request-URI Too Large",
+    [415] = "Unsupported Media Type",
+    [416] = "Requested Range Not Satisfiable",
+    [417] = "Expectation Failed",
+    [429] = "Too Many Requests",
+    [500] = "Internal Server Error",
+    [501] = "Not Implemented",
+    [502] = "Bad Gateway",
+    [503] = "Service Unavailable",
+    [504] = "Gateway Time-Out",
+    [505] = "HTTP Version Not Supported"
+}, {
+    __index = Function(self, statusCode)
+        ; If the lookup failed, try to coerce to a number and try again
+        If GetType(statusCode) = #STRING
+            ; TODO What if ToNumber fails? Switch to -1?
+            Local result = RawGet(self, ToNumber(statusCode))
+            If Not IsNil(result)
+                Return (result)
+            EndIf
+        EndIf
+        Error("HTTP Status Code '" .. ToString(statusCode) .. "' is unknown")
+    EndFunction
+})
+
+Global tempBuilder = StringBuilder:New()
+tempBuilder:Append("<!doctype html>\n")
+tempBuilder:Append("<html lang=\"en\">\n")
+tempBuilder:Append("<head>\n")
+tempBuilder:Append("\t<meta charset=\"utf-8\">\n")
+tempBuilder:Append("\t<title>Error response</title>\n")
+tempBuilder:Append("</head>\n")
+tempBuilder:Append("<body>\n")
+tempBuilder:Append("\t<h1>Error response</h1>\n")
+tempBuilder:Append("\t<p>Error code: {{ STATUS_CODE }}</p>\n")
+tempBuilder:Append("\t<p>Message: {{ STATUS_TEXT }}</p>\n")
+tempBuilder:Append("</body>\n")
+tempBuilder:Append("</html>")
+Global DEFAULT_ERROR_MESSAGE = tempBuilder:ToString()
+
+Global Response = {}
+Response.log = {}
+Response._headerSent = False
+Response._templateFirstLine = "HTTP/1.1 {{ STATUS_CODE }} {{ STATUS_TEXT }}\r\n"
+Response._headerFirstLine = StringUtils.EMPTY
+Response._headers = {}
+Response._isClosed = False
+Response._client = Nil
+Response._writeHandler = Nil
+Response.status = 200
+Response._skipBody = False   ; for HEAD requests
+Response._chunked = False
+Response.closed = False
+
+Function Response:New(client, writeHandler)
+   Local instance = CopyTable(self)
+   instance.log = writeHandler.log
+   instance._client = client
+   instance._writeHandler = writeHandler
+   Return (instance)
+EndFunction
+
+Function Response:AddHeader(key, value)
+    If self._headerSent
+        Error("Can't add header, they are already sent")
+    EndIf
+
+    self._headers[key] = value
+    Return (self)
+EndFunction
+
+Function Response:AddHeaders(params)
+    For key, value In Pairs(params)
+        self:AddHeader(key, value)
+    Next
+    Return (self)
+EndFunction
+
+Function Response:ContentType(value)
+    Return self:AddHeader("Content-Type", value)
+EndFunction
+
+Function Response:StatusCode(statusCode, statusText)
+    If self._headerSent
+        Error("Can't set status code, it was already sent")
+    EndIf
+
+    self.status = statusCode
+    self._headerFirstLine = PatternReplaceStr(self._templateFirstLine, "{{ STATUS_CODE }}", ToString(statusCode))
+    Local text = IIf(IsNil(statusText), IIf(IsNil(STATUS_TEXT[statusCode]), "Unknown status " .. ToString(statusCode), [STATUS_TEXT[statusCode]]), statusText)
+    self._headerFirstLine = PatternReplaceStr(self._headerFirstLine, "{{ STATUS_TEXT }}", text)
+    Return (self)
+EndFunction
+
+Function Response:SkipBody(skip)
+    If IsNil(skip) Then skip = True
+    self._skipBody = Not Not skip
+EndFunction
+
+Function Response:_getHeaders()
+    Local headers = {}
+    For headerName, headerValue In Pairs(self._headers)
+        If GetType(headerValue) = #TABLE And ListItems(headerValue) > 0
+            For _, subValue In IPairs(headerValue)
+                headers[ListItems(headers) + 1] = headerName .. ": " .. subValue .. "\r\n"
+            Next
+        Else
+            headers[ListItems(headers) + 1] = headerName .. ": " .. headerValue .. "\r\n"
+        EndIf
+    Next
+
+    Return (Concat(headers))
+EndFunction
+
+Function Response:SendHeaders(stayOpen, body)
+    If IsNil(stayOpen) Then stayOpen = False
+    
+    If self._headerSent
+        Return (self)
+    EndIf
+
+    If stayOpen
+        self:AddHeader("Transfer-Encoding", "chunked")
+    Else
+        self:AddHeader("Content-Length", body:len())
+    EndIf
+
+    self:AddHeader("Date", )
+
+    If IsNil(RawGet("content-type"))
+        self:AddHeader("Content-Type", "text/html")
+    EndIf
+
+    self._client:Send(self._headerFirstLine .. self:_getHeaders() .. "\r\n")
+    self._chunked = stayOpen
+    self._headerSent = True
+    Return (self)
+EndFunction
+
+Function Response:Write(body, stayOpen)
+    If IsNil(body) Then body = StringUtils.EMPTY
+    body = self._writeHandler:ProcessBodyData(body, stayOpen, self)
+    self:SendHeaders(stayOpen, body)
+
+    self._isClosed = Not stayOpen
+    If Not self._skipBody
+        If self._isClosed
+            self._client:Send(body)
+        ElseIf Not StringUtils.IsEmpty(body)
+            self._client:Send(HEUtils.ToHex(StringUtils.StringLength(body)) .. "\r\n" .. body .. "\r\n")
+        EndIf
+    EndIf
+
+    If self._isClosed
+        self._client:Close()  ; TODO we can probably remove this. a non-chunked body can also be sent in multiple pieces
+    EndIf
+
+    Return (self)
+EndFunction
+
+Function Response:SendOnlyHeaders()
+    self:SendHeaders(False, StringUtils.EMPTY)
+    self:Write("\r\n")
+    Return (self)
+EndFunction
+
+Function Response:Close()
+    If Not self.closed
+        Local body = self._writeHandler:ProcessBodyData(Nil, True, self)
+        If Not self._skipBody
+            If Not StringUtils.IsEmpty(body)
+                Local toSend = HEUtils.ToHex(StringUtils.StringLength(body)) .. "\r\n" .. body .. "\r\n"
+                self._client:Send(toSend)
+            EndIf
+
+            self._client:Send("0\r\n\r\n")
+        EndIf
+
+        self.closed = True
+    EndIf
+
+    Return (self)
+EndFunction
+
+Function Response:WriteDefaultErrorMessage(statusCode, errMsg)
+    self:StatusCode(statusCode)
+    Local content = PatternReplaceStr(DEFAULT_ERROR_MESSAGE, "{{ STATUS_CODE }}", statusCode)
+    Local stat = IIf(StringUtils.IsEmpty(errMsg), STATUS_TEXT[statusCode], errMsg)
+    self:Write(PatternReplaceStr(content, "{{ STATUS_TEXT }}", stat))
+
+    Return (self)
+EndFunction
+
+Function Response:ReadFile(filename)
+    ExitOnError(False)
+    Local fileId = OpenFile(Nil, filename, #MODE_READ)
+    If IsNil(fileId)
+        Return (Nil, GetErrorName(GetLastError()))
+    EndIf
+
+    Local value = ReadBytes(fileId, 0)
+    Local err = GetErrorName(GetLastError())
+    ExitOnError(True)
+    CloseFile(fileId)
+    Return (value, err)
+EndFunction
+
+Function Response:WriteFile(filename, contentType)
+    Local errMsg = "success"
+    If GetType(filename) <> #STRING
+        ; Deprecated backward compatibility; file is a file-descriptor
+        self:ContentType(contentType)
+        self:StatusCode(200)
+
+        ExitOnError(False)
+        Local value = ReadBytes(filename, 0)
+        ExitOnError(True)
+        CloseFile(fileId)
+
+        self:Write(value)
+        Return (self, errMsg)
+    EndIf
+
+    Local contents, err = self:ReadFile(filename)
+    If StringUtils.IsEmpty(contents)
+        Return (Nil, err)
+    EndIf
+
+    self:StatusCode(200)
+    Local cType = IIf(StringUtils.IsEmpty(contentType), MimeTypes.Guess(filename), contentType)
+    self:ContentType(cType)
+    self:Write(contents)
+    Return (self, errMsg)
+EndFunction
+
+Function Response:SendFile(path)
+    Local filename = PatternFindStrShort(path, "[^/]*$")  ; only filename, no path
+    self:AddHeader("Content-Disposition", "attachment; filename=\"" .. filename .. "\"")
+
+    Local ok, err = self:WriteFile(path, "application/octet-stream")
+    If IsNil(ok)
+        self:AddHeader("Content-Disposition", Nil)
+        Return (Nil, err)
+    EndIf
+
+    Return (self, err)
+EndFunction
+
+Function Response:Redirect(location, isTemporary)
+    self:StatusCode(IIf(isTemporary, 302, 301))
+    self:AddHeader("Location", location)
+    self:SendOnlyHeaders()
+    Return (self)
+EndFunction

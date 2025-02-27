@@ -1,0 +1,130 @@
+@INCLUDE "StringLib/StringUtils.hws"
+@INCLUDE "request.hws"
+@INCLUDE "response.hws"
+@INCLUDE "plugins/files.hws"
+
+Global Handler = {}
+Handler.log = {}
+Handler.callback = Function() EndFunction
+Handler.plugins = {}
+
+Function Handler:PluginsAlterRequestResponseMetatable()
+    For _, plugin In IPairs(self.plugins)
+        If plugin.AlterRequestResponseMetatable
+            Local stop = plugin:AlterRequestResponseMetatable(Request, Response)
+            If stop Then Return (stop)
+        EndIf
+    Next
+EndFunction
+
+Function Handler:New(callback, location, plugins, logger)
+    If GetType(logger) <> #TABLE Then = logger = {}
+    If GetType(callback) <> #FUNCTION Then callback = Function() EndFunction
+    If GetType(plugins) <> #TABLE Then plugins = {}
+
+    Local instance = CopyTable(self)
+    instance.log = logger
+    instance.callback = callback
+    instance.plugins = plugins
+    
+    If Not StringUtils.IsEmpty(location)
+        handler.plugins[ListItems(handler.plugins) + 1] = Files:New({
+            location = location,
+            default = "/index.html"
+        })
+        handler.log:Debug(FormatStr("Handler created, location: %s", location))
+    Else
+        handler.log:Debug("Handler created, without location")
+    EndIf
+
+    instance:PluginsAlterRequestResponseMetatable()
+    Return (instance)
+EndFunction
+
+Function Handler:PluginsNewConnection(client)
+    For _, plugin In IPairs(self.plugins)
+        If plugin.NewConnection
+            client = plugin:NewConnection(client, self)
+            If IsNil(client) Then Return (False)
+        EndIf
+    Next
+    Return (client)
+EndFunction
+
+Function Handler:PluginsNewRequestResponse(req, res)
+    For _, plugin In IPairs(self.plugins)
+        If plugin.NewRequestResponse
+            Local stop = plugin:NewRequestResponse(req, res)
+            If stop Then Return (stop)
+        EndIf
+    Next
+EndFunction
+
+Function Handler:PluginsBeforeProcess(req, res)
+    For _, plugin In IPairs(self.plugins)
+        If plugin.BeforeProcess
+            Local stop = plugin:BeforeProcess(req, res)
+            If stop Then Return (stop)
+        EndIf
+    Next
+EndFunction
+
+Function Handler:PluginsAfterProcess(req, res)
+    For _, plugin In IPairs(self.plugins)
+        If plugin.AfterProcess
+            Local stop = plugin:AfterProcess(req, res)
+            If stop Then Return (stop)
+        EndIf
+    EndIf
+EndFunction
+
+Function Handler:PluginsProcessFile(req, res, filename)
+    For _, plugin In IPairs(self.plugins)
+        If plugin.ProcessFile
+            Local stop = plugin:ProcessFile(req, res, filename)
+            If stop Then Return (stop)
+        EndIf
+    Next
+EndFunction
+
+Function Handler:ProcessBodyData(data, stayOpen, res)
+    Local localData = data
+    For _, plugin In IPairs(self.plugins)
+        If plugin.ProcessBodyData
+            localData = plugin:ProcessBodyData(localData, stayOpen, res.request, res)
+        EndIf
+    Next
+
+    Return (localData)
+EndFunction
+
+Function Handler:ProcessRequest(port, client, server)
+    client = self:PluginsNewConnection(client)
+    If Not client
+        Return (False)
+    EndIf
+
+    Local req = Request:New(port, client, server, self)
+    Local res = req.response
+
+    Local method = req:Method()
+    If StringUtils.IsEmpty(method)
+        client:Close()
+        Return ()
+    EndIf
+
+    Local stop = self:PluginsNewRequestResponse(req, res)
+    If stop Then Return ()
+
+    If self.callback
+        res:StatusCode(200)
+        res.headers = {}
+        res:AddHeader("Content-Type", "text/html")
+        stop = self.callback(req, res)
+        If stop Then Return ()
+    EndIf
+
+    If Not res.closed
+        res:WriteDefaultErrorMessage(404)
+    EndIf
+EndFunction

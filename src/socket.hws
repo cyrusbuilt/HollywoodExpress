@@ -1,0 +1,129 @@
+@INCLUDE "StringLib/StringUtils.hws"
+
+Global Socket = {}
+Socket.Server = {}
+Socket.Server.id = Nil
+Socket.Server.ip = "*"
+Socket.Server.port = 8080
+Socket.Server._clients = {}
+Socket.Server._closed = True
+Socket.Server.timeout = 1
+Socket.Client = {}
+Socket.Client.serverId = Nil
+Socket.Client.clientId = Nil
+Socket.Client.timeout = 1
+Socket.Client.ip = StringUtils.EMPTY
+Socket.Client.port = 0
+Socket.Client._closed = True
+
+Function Socket.Client:New(serverId, clientId)
+    Local instance = CopyTable(self)
+    instance.serverId = serverId
+    instance.clientId = clientId
+    instance.ip = GetConnectionIP(clientId)
+    instance.port = GetConnectionPort(clientId)
+    instance._closed = False
+    Return (instance)
+EndFunction
+
+Function Socket.Client:SetTimeout(timeout)
+    If self._closed Then Return ()
+    If IsNil(timeout) Then timeout = 1
+    self.timeout = timeout
+EndFunction
+
+Function Socket.Client:GetPeerName()
+    If self._closed Then Return (Nil)
+    Local builder = StringBuilder:New()
+    builder:Append(self.ip)
+    builder:Append(ToString(self.port))
+    builder.Append(GetConnectionProtocol(self.clientId))
+    Return (builder:ToString())
+EndFunction
+
+Function Socket.Client:Close()
+    If self._closed Then Return ()
+    self.serverId = Nil
+    self.clientId = Nil
+    self.timeout = 1
+    self._closed = True
+EndFunction
+
+Function Socket.Client:Receive(byteCount)
+    If self._closed Then Return (Nil, 0, True)
+    If GetType(byteCount) <> #NUMBER Or byteCount = 0
+        Return (ReceiveData(self.clientId, #RECEIVELINE))
+    EndIf
+
+    Return (ReceiveData(self.clientId, #RECEIVEBYTES, byteCount))
+EndFunction
+
+Function Socket.Client:Send(data)
+    If IsNil(self.clientId) Then Return (0)
+    Return (SendData(self.clientId, data))
+EndFunction
+
+Function Socket.Server:New(ip$, port)
+    If StringUtils.IsEmpty(ip$) Then ip$ = "*"
+    If GetType(port) <> #NUMBER And port <= 0 Then port = 8080
+    Local instance = CopyTable(self)
+    instance.id = CreateServer(Nil, port, ip$, Nil, #IPAUTO)
+    InstallEventHandler({
+        OnConnect = Function(eventData)
+            Local client = Socket.Client:New(eventData.ServerID, eventData.ClientID)
+            InsertItem(self._clients, client)
+        EndFunction,
+        OnDisconnect = Function(eventData)
+            ; TODO Find matching client and close?
+        EndFunction,
+        OnReceiveData = Function(eventData)
+            ; TODO Do we need to do anything here?
+        EndFunction
+    })
+    instance._closed = False
+    Return (instance)
+EndFunction
+
+Function Socket.Server:GetSocketName()
+    If self._closed Then Return (Nil)
+    Return (self.ip, self.port)
+EndFunction
+
+Function Socket.Server:SetTimeout(timeout)
+    If self._closed Then Return ()
+    If IsNil(timeout) Then timeout = 1
+    self.timeout = timeout
+EndFunction
+
+Function Socket.Server:Accept()
+    If self._closed Then Return (Nil)
+    Local timerId = StartTimer(Nil, self.timeout)
+
+    Repeat
+        WaitEvent()
+    Until ListItems(self._clients) > 0 Or TimerElapsed(timerId)
+
+    StopTimer(timerId)
+    Local client = GetItem(self._clients, -1)
+    Return (client, IIf(IsNil(client), "timeout", "success"))
+EndFunction
+
+Function Socket.Server:Close()
+    If self._closed Then Return ()
+    InstallEventHandler({OnConnect=Nil, OnDisconnect=Nil, OnReceiveData=Nil})
+    
+    Local n, i = NextItem(self._clients)
+    While GetType(n) <> #NIL
+        i:Close()
+        n, i = NextItem(self._clients, n)
+    Wend
+
+    self.id = Nil
+    self._clients = {}
+    self._closed = True
+EndFunction
+
+Function Socket.bind(ip$, port)
+    Local server = Socket.Server:New(ip$, port)
+    Return (server)
+EndFunction

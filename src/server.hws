@@ -1,0 +1,47 @@
+@INCLUDE "socket.hws"
+@INCLUDE "handler.hws"
+@INCLUDE "logger.hws"
+
+Const #EXP_SVR_VER = "1.0.0"
+
+Global HollywoodExpressServer = {}
+HollywoodExpressServer.host = "*"
+HollywoodExpressServer.port = 8080
+HollywoodExpressServer.location = ""
+HollywoodExpressServer.plugins = {}
+HollywoodExpressServer.timeout = 1
+HollywoodExpressServer.log = {}
+HollywoodExpressServer.VERSION = #EXP_SVR_VER
+
+Function HollywoodExpressServer:New(params)
+    If GetType(params) <> #TABLE Then params = {}
+    
+    Local instance = CopyTable(self)
+    instance.host = IIf(GetType(params.host) = #STRING, params.host, "*")
+    instance.port = IIf(GetType(params.port) = #NUMBER, params.port, 8080)
+    instance.location = IIf(GetType(params.location) = #STRING, params.location, "")
+    instance.plugins = IIf(GetType(params.plugins) = #TABLE, params.plugins, {})
+    instance.timeout = IIf(GetType(params.timeout) = #NUMBER, params.timeout, 1)
+    instance.log = IIf(GetType(params.log) = #TABLE, params.log, Logger:New(#EXP_LOG_MODE_CONSOLE_ONLY))
+
+    Return (instance)
+EndFunction
+
+Function HollywoodExpressServer:Listen(callback)
+    Local handler = Handler:New(callback, self.location, self.plugins, self.log)
+    Local server = Socket.Bind(self.host, self.port)
+    Local ip, port = server:GetSocketName()
+
+    NPrint("Express v" .. self.VERSION ..  " is up on " .. ip .. ":" .. ToString(port))
+    handler.log:Info(FormatStr("Express v%s is up on %s:%s", self.VERSION, ip, port))
+    
+    While True
+        Local client, errMsg = server:Accept()
+        If client
+            client:SetTimeout(self.timeout)
+            handler:ProcessRequest(self.port, client, server)
+        Else
+            handler.log:Error(FormatStr("Failed to accept connection: %s", errMsg))
+        EndIf
+    Wend
+EndFunction

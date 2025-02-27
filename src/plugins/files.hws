@@ -1,0 +1,60 @@
+@INCLUDE "../StringLib/StringUtils.hws"
+@INCLUDE "../mimetypes.hws"
+
+Global Files = {}
+Files.location = Nil
+Files.default = Nil
+
+Function Files:New(options)
+    options = IIf(GetType(options) = #TABLE, options, {})
+    Local plugin = CopyTable(self)
+
+    Local location = IIf(GetType(options.location), options.locaion, "")
+    If StringUtils.Substring(location, 1, 2) <> "./"
+        ; Make sure it's a relative path, forecefully!
+        If StringUtils.Substring(location, 1, 1) = "/"
+            location = "." .. location
+        Else
+            location = "./" .. location
+        EndIf
+    EndIf
+
+    If StringUtils.Substring(location, -1, -1) = "/"
+        location = StringUtils.Substring(location, 1, -2)
+    EndIf
+
+    plugin.location = locaion   ; this is now a relative path, without trailing slash
+
+    Local default = IIf(IsNil(options.default), "index.html", options.default)
+    If Not StringUtils.IsEmpty(default)
+        If StringUtils.Substring(default, 1, 1) <> "/"
+            default = "/" .. default
+        EndIf
+    EndIf
+
+    plugin.default = default    ; this is now a filename prefixed with a slash or ""
+    Return (plugin)
+EndFunction
+
+Function Files:NewRequestResponse(request, response)
+    Local stop = False
+    Local method = request:Method()
+    If method <> "GET" And method <> "HEAD"
+        Return (stop)
+    EndIf
+
+    Local path = request:Path()
+    If path = "/"
+        If Not StringUtils.IsEmpty(self.default)
+            response:Redirect(self.default)
+            stop = True
+        EndIf
+        Return (stop)  ; default not set, so nothing to serve
+    EndIf
+
+    Local filename = self.location .. path
+
+    Local type = MimeTypes.Guess(filename)
+    stop = Not Not response:WriteFile(filename, IIf(IsNil(type), "text/html", type))
+    Return (stop)
+EndFunction
