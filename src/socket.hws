@@ -101,7 +101,7 @@ Function Socket.Server:Accept()
 
     Repeat
         WaitEvent()
-    Until ListItems(self._clients) > 0 Or TimerElapsed(timerId)
+    Until TableItems(self._clients) > 0 Or TimerElapsed(timerId)
 
     StopTimer(timerId)
     Local client = GetItem(self._clients, -1)

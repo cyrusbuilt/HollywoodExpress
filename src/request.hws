@@ -26,6 +26,8 @@ Request._headers = {}
 Request._contentDone = 0
 Request._contentLength = Nil
 Request.response = {}
+Request.pathParameters = {}
+Request.routerPath = StringUtils.EMPTY
 
 Function Request:New(port, client, server, handler)
     If GetType(client) <> #TABLE Then client = {}
@@ -56,7 +58,7 @@ Function Request:ParseUrlEncoded(data)
                     output[key] = { v, value}
                 Else
                     ; v is a table
-                    v[ListItems(v) + 1] = value
+                    v[TableItems(v)] = value
                 EndIf
             EndIf
         Next
@@ -140,7 +142,7 @@ Function Request:Headers()
             ElseIf GetType(v) = #STRING
                 headers[key] = { v, value }
             Else
-                v[ListItems(v) + 1] = value
+                v[TableItems(v)] = value
             EndIf
         EndIf
 

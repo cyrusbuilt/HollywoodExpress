@@ -227,7 +227,7 @@ Function StringUtils.ParseDateFromYMDHMSString(inString)
 	Local dateParts = {}
     If (hasDash)
         dateParts = StringUtils.StringSplit(dtParts[0], "-")
-        If (ListItems(dateParts) <> 3)
+        If (TableItems(dateParts) <> 3)
             Return (False, Nil)
         EndIf
 
@@ -247,7 +247,7 @@ Function StringUtils.ParseDateFromYMDHMSString(inString)
 	Local timeParts = {}
     If (hasColon)
         timeParts = StringUtils.StringSplit(dtParts[1], ":")
-        If (ListItems(timeParts) <> 3)
+        If (TableItems(timeParts) <> 3)
             Return (False, Nil)
         EndIf
 

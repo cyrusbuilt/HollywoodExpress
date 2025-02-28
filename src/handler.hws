@@ -28,7 +28,7 @@ Function Handler:New(callback, location, plugins, logger)
     instance.plugins = plugins
     
     If Not StringUtils.IsEmpty(location)
-        handler.plugins[ListItems(handler.plugins) + 1] = Files:New({
+        handler.plugins[TableItems(handler.plugins)] = Files:New({
             location = location,
             default = "/index.html"
         })

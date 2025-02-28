@@ -136,12 +136,12 @@ EndFunction
 Function Response:_getHeaders()
     Local headers = {}
     For headerName, headerValue In Pairs(self._headers)
-        If GetType(headerValue) = #TABLE And ListItems(headerValue) > 0
+        If GetType(headerValue) = #TABLE And TableItems(headerValue) > 0
             For _, subValue In IPairs(headerValue)
-                headers[ListItems(headers) + 1] = headerName .. ": " .. subValue .. "\r\n"
+                headers[TableItems(headers)] = headerName .. ": " .. subValue .. "\r\n"
             Next
         Else
-            headers[ListItems(headers) + 1] = headerName .. ": " .. headerValue .. "\r\n"
+            headers[TableItems(headers)] = headerName .. ": " .. headerValue .. "\r\n"
         EndIf
     Next
 
@@ -161,7 +161,7 @@ Function Response:SendHeaders(stayOpen, body)
         self:AddHeader("Content-Length", body:len())
     EndIf
 
-    self:AddHeader("Date", )
+    self:AddHeader("Date", "") ; TODO Date/time format?
 
     If IsNil(RawGet("content-type"))
         self:AddHeader("Content-Type", "text/html")

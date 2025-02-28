@@ -8,7 +8,7 @@ Function StringBuilder:New()
 EndFunction
 
 Function StringBuilder:Count()
-    Return (ListItems(self._storage))
+    Return (TableItems(self._storage))
 EndFunction
 
 Function StringBuilder:ToString()
@@ -41,7 +41,7 @@ EndFunction
 Function StringBuilder:GetIndex(inString)
     Local index = -1
     Local i
-    For i = 0 To ListItems(self._storage) - 1
+    For i = 0 To TableItems(self._storage) - 1
         Local item = GetItem(self._storage, i)
         If (CompareStr(item, inString) = 0)
             index = i

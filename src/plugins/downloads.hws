@@ -1,0 +1,81 @@
+; A plugin that allows to download files via a browser.
+
+@INCLUDE "../StringLib/StringUtils.hws"
+
+Global Downloads = {}
+Downloads.location = StringUtils.EMPTY
+Downloads.stripPrefix = False
+Downloads.prefix = StringUtils.EMPTY
+
+;- Creates a new plugin instance.
+; The plugin will only respond to `GET` requests. The files will be served from the
+; same `location` setting as defined in the `Handler`. The `prefix` is a virtual folder
+; that triggers the plugin, but will be removed from the filepath if `stripPrefix` is truthy.
+; If `stripPrefix` is falsy, then it should be a real folder.
+; @tparam opts table the options table with the following fields;
+; @tparam[opt="./"] opts.location string the path to serve files from. Relative to the working directory.
+; @tparam[opt="downloads/"] opts.prefix string the path prefix that triggers the plugin
+; @tparam options.stripPrefix bool whether to strip the prefix from the file path when looking
+; for the file in the filesystem. Defaults to `false`, unless `options.prefix` is omitted,
+; then it defaults to `true`.
+; @return the new plugin
+Function Downloads:New(opts)
+    If GetType(opts) <> #TABLE Then opts = {}
+
+    Local location = opts.location Or StringUtils.EMPTY
+    If StringUtils.Substring(location, 1, 2) <> "./"
+        If StringUtils.Substring(location, 1, 1) = "/"
+            location = "." .. location
+        Else
+            location = "./" .. location
+        EndIf
+    EndIf
+
+    If StringUtils.Substring(location, -1, -1) = "/"
+        location = StringUtils.Substring(location, 1, -2)
+    EndIf
+
+    Local instance CopyTable(self)
+    Local prefix = opts.prefix
+    If prefix
+        instance.stripPrefix = Not Not opts.stripPrefix
+    Else
+        prefix = "downloads/"
+        If IsNil(opts.stripPrefix)
+            instance.stripPrefix = True
+        Else
+            instance.stripPrefix = Not Not opts.stripPrefix
+        EndIf
+    EndIf
+
+    prefix = "/" .. prefix .. "/"
+    While FindStr(prefix, "//")
+        prefix = PatternReplaceStr(prefix, "//", "/")
+    Wend
+
+    instance.location = location
+    instance.prefix = prefix
+    Return (instance)
+EndFunction
+
+Function Downloads:NewRequestResponse()
+    Local stop = False
+
+    Local method = req:Method()
+    If method <> "GET" And method <> "HEAD"
+        Return (stop)   ; we only handle GET requests
+    EndIf
+
+    Local path = req:Path()
+    If FindStr(path, self.prefix) <> 1
+        Return (stop)   ; doesn't match our prefix
+    EndIf
+
+    Local filename = path
+    If self.stripPrefix
+        filename = StringUtils.Substring(path, TableItems(self.prefix), -1)
+    EndIf
+
+    stop = Not Not res:SendFile(self.location .. filename)
+    Return (stop)
+EndFunction
