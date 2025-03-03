@@ -161,7 +161,10 @@ Function Response:SendHeaders(stayOpen, body)
         self:AddHeader("Content-Length", body:len())
     EndIf
 
-    self:AddHeader("Date", "") ; TODO Date/time format?
+    Local ts = TimestampToDate(GetTimestamp(#TIMESTAMP_UNIX), True)
+    ts = StringUtils.StringReplace(ts, "-", StringUtils.DEFAULT_PAD_CHAR, True)
+    ts = "!" .. GetWeekday() .. ", " .. ts .. " GMT"
+    self:AddHeader("Date", ts)
 
     If IsNil(RawGet("content-type"))
         self:AddHeader("Content-Type", "text/html")
