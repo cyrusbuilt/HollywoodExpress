@@ -19,7 +19,7 @@ EndFunction
 
 Function Handler:New(callback, location, plugins, logger)
     If GetType(logger) <> #TABLE Then = logger = {}
-    If GetType(callback) <> #FUNCTION Then callback = Function() EndFunction
+    If GetType(callback) <> #FUNCTION Then callback = Function(req, res) Return (True) EndFunction
     If GetType(plugins) <> #TABLE Then plugins = {}
 
     Local instance = CopyTable(self)

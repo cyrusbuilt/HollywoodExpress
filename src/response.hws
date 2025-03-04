@@ -87,6 +87,8 @@ Response.status = 200
 Response._skipBody = False   ; for HEAD requests
 Response._chunked = False
 Response.closed = False
+Response.compressStream = Nil
+Response.compressBuffer = Nil
 
 Function Response:New(client, writeHandler)
    Local instance = CopyTable(self)

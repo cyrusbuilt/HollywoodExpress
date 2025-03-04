@@ -1,0 +1,108 @@
+@INCLUDE "../StringLib/StringUtils.hws"
+
+Global ZlibStream = {}
+ZlibStream.isClosed = False
+ZlibStream.writer = Nil
+ZlibStream._compFilename = Nil
+
+Function ZlibStream:New(writer)
+    If GetType(writer) <> #FUNCTION Then writer = Function(chunk) Return (chunk) EndFunction
+
+    Local instance = CopyTable(self)
+    instance.writer = writer
+    instance._compFilename = GetTempFileName()
+    Return (instance)
+EndFunction
+
+Function ZlibStream:Write(chunk)
+    If self.isClosed Then Return ()
+    Local id = OpenFile(Nil, self._compFilename, #MODE_WRITE)
+    WriteBytes(id, chunk)
+    CloseFile(id)
+
+    Local src = self._compFilename
+    Local dst = src .. ".gz"
+    CompressFile(src, dst)
+    DeleteFile(src)
+
+    Local len = FileSize(dst)
+    id = OpenFile(Nil, dst, #MODE_READ)
+    chunk = ReadBytes(id, len)
+    CloseFile(id)
+    DeleteFile(dst)
+    self.writer(chunk)
+EndFunction
+
+Function ZlibStream:Close()
+    If self._isClosed Then Return ()
+    self.writer = Nil
+    self._compFilename = Nil
+    self.isClosed = True
+EndFunction
+
+Global Compress = {}
+Compress.options = {}
+
+Function Compress:New(opts)
+    If GetType(opts) <> #TABLE Then opts = {}
+
+    Local instance = CopyTable(self)
+    instance.options = opts
+    Return (instance)
+EndFunction
+
+Function Compress:ProcessBodyData(data, stayOpen, req, res)
+    If IsNil(stayOpen) Then stayOpen = False
+
+    Local acceptEncoding = StringUtils.EMPTY
+    If res.headersSent
+        acceptEncoding = res.headers["Content-Encoding"] Or StringUtils.EMPTY
+    Else
+        acceptEncoding = res.headers["Accept-Encoding"] Or StringUtils.EMPTY
+    EndIf
+
+    Local acceptGzip = Not Not PatternFindStrShort(acceptEncoding, "gzip")
+    If acceptGzip
+        Local stream = res.compressStream
+        Local buffer = res.compressBuffer
+
+        If IsNil(stream)
+            Local writer = Function(zdata) buffer[TableItems(buffer)] = zdata EndFunction
+            stream = ZlibStream:New(writer)
+            buffer = {}
+        EndIf
+
+        If stayOpen
+            If IsNil(data)
+                stream:Close()
+                res.compressStream = Nil
+                res.compressBuffer = Nil
+            Else
+                stream:Write(data)
+                res.compressStream = stream
+                res.compressBuffer = buffer
+            EndIf
+
+            Local compressed = Concat(buffer)
+            For i = 1 To TableItems(buffer) Do buffer[i] = Nil Next
+            If Not res.headersSent
+                res:AddHeader("Content-Encoding", "gzip")
+            EndIf
+
+            Return (compressed)
+        EndIf
+
+        stream:Write(data)
+        stream:Close()
+        Local compressed = Concat(buffer)
+        If StringUtils.StringLength(compressed) < StringUtils.StringLength(data)
+            If Not res.headersSent
+                res:AddHeader("Content-Encoding", "gzip")
+            EndIf
+
+            Return (compressed)
+        EndIf
+    EndIf
+
+    Return (data)
+EndFunction
