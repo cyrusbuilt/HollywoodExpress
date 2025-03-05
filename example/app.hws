@@ -1,0 +1,106 @@
+; We need at least Hollywood 10.0!
+@VERSION 10,0
+
+; App info
+@APPTITLE "HETest"
+@APPVERSION "$VER: HETest 1.0"
+@APPCOPYRIGHT "© 2025, Chris 'Cyrus' Brunner"
+@APPAUTHOR "Chris 'Cyrus' Brunner"
+@APPDESCRIPTION "Test Application for HollywoodExpress library"
+@APPIDENTIFIER "net.cyrusbuilt.hollywoodexpress.testapp"
+
+@INCLUDE "../HollywoodExpress.hws"
+@INCLUDE "../src/plugins/downloads.hws"
+@INCLUDE "../src/plugins/files.hws"
+@INCLUDE "../src/plugins/router.hws"
+@INCLUDE "../src/plugins/compress.hws"
+
+Global testData = {
+    Jane = { firstName = "Jane", lastName = "Doe", age = 25 },
+    John = { firstName = "John", lastName = "Doe", age = 30 }
+}
+
+Global routes = {
+    ; router-level preFunction runs before the method prefunction and callback
+    preFunction = Function(req, res)
+        Local stop = False
+        Local headers = req:Headers()
+        Local accept = LowerStr((headers.accept Or "*/*"))
+        If Not PatternFindStr(accept, "application/json", 1) And
+            Not PatternFindStr(accept, "application/*", 1) And
+            Not PatternFindStr(accept, "*/*", 1)
+            res:WriteDefaultErrorMessage(406, "This API only produces 'application/json'")
+            stop = True
+        EndIf
+        Return (stop)
+    EndFunction,
+    ["/people"] = {
+        GET = Function(req, res)
+            res:StatusCode(200)
+            res:AddHeader("Content-Type", "application/json")
+            res:Write(SerializeTable(testData))
+        EndFunction
+    },
+    ["/people/{name}"] = {
+        ; path-level preFunction runs before the actual method callback
+        preFunction = Function(req, res)
+            Local stop = False
+            Local name = req.pathParameters.name
+            If Not testData[name]
+                Local err = FormatStr("'%s' is an unknown person", name)
+                req.log:Error(err)
+                res:WriteDefaultErrorMessage(404, err)
+                stop = True
+            EndIf
+            Return (stop)
+        EndFunction,
+        ; callback per method
+        GET = Function(req, res)
+            res:StatusCode(200)
+            res:AddHeader("Content-Type", "application/json")
+            res:Write(SerializeTable(testData[req.pathParameters.name]))
+        EndFunction,
+        ; postFunction runs after the actual method callback
+        postFunction = Function(req, res)
+            Local stop = False
+            req.log:Debug(FormatStr("served %s's data", req.pathParameters.name))
+            Return (stop)
+        EndFunction
+    }
+}
+
+Global server = Express({
+    port = 8080,
+    plugins = {
+        Downloads:New({
+            location = "/example/root/",
+            prefix = "downloads",
+            stripPrefix = True
+        }),
+        Files:New({
+            location = "/example/root"
+        }),
+        Router:New({
+            prefix = "/api/1v0",
+            routes = routes
+        }),
+        Compress:New()
+    }
+})
+
+server:Listen(Function(req, res)
+    Local stop = False
+    Local path = req:Path()
+    If req:Method() <> "POST" Or path <> "/index.html"
+        Return (stop)
+    EndIf
+
+    Local data = req:Post()
+    If data
+        Print("Name: " .. data.name)
+        Print("Age: " .. data.age)
+    EndIf
+
+    stop = Not Not res:WriteFile("./exmaple/root" .. path)
+    Return (stop)
+EndFunction)
