@@ -20,8 +20,8 @@ Function Socket.Client:New(serverId, clientId)
     Local instance = CopyTable(self)
     instance.serverId = serverId
     instance.clientId = clientId
-    instance.ip = GetConnectionIP(clientId)
-    instance.port = GetConnectionPort(clientId)
+    instance.ip = IIf(IsNil(clientId), Nil, GetConnectionIP(clientId))
+    instance.port = IIf(IsNil(clientId), 0, GetConnectionPort(clientId))
     instance._closed = False
     Return (instance)
 EndFunction
@@ -63,9 +63,23 @@ Function Socket.Client:Send(data)
     Return (SendData(self.clientId, data))
 EndFunction
 
+Function Socket.Server:FindClientById(clientId)
+	Local foundClient = Nil
+	Local n, i = NextItem(self._clients)
+	While GetType(n) <> #NIL
+		If i.clientId = clientId
+			foundClient = i
+			Break
+		EndIf
+		n, i = NextItem(self._clients, n)
+	Wend
+	
+	Return (foundClient)
+EndFunction
+
 Function Socket.Server:New(ip$, port)
     If StringUtils.IsEmpty(ip$) Then ip$ = "*"
-    If GetType(port) <> #NUMBER And port <= 0 Then port = 8080
+    If GetType(port) <> #NUMBER Or port <= 0 Then port = 8080
     Local instance = CopyTable(self)
     instance.id = CreateServer(Nil, port, ip$, Nil, #IPAUTO)
     InstallEventHandler({
@@ -74,7 +88,11 @@ Function Socket.Server:New(ip$, port)
             InsertItem(self._clients, client)
         EndFunction,
         OnDisconnect = Function(eventData)
-            ; TODO Find matching client and close?
+			Local client = self:FindClientById(eventData.ID)
+			If Not IsNil(client)
+				client:Close()
+				; TODO remove from client list
+			EndIf
         EndFunction,
         OnReceiveData = Function(eventData)
             ; TODO Do we need to do anything here?

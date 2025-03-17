@@ -21,8 +21,9 @@ Downloads.prefix = StringUtils.EMPTY
 ; @return the new plugin
 Function Downloads:New(opts)
     If GetType(opts) <> #TABLE Then opts = {}
+	If GetType(RawGet(opts, "location")) <> #STRING Then opts.location = StringUtils.EMPTY
 
-    Local location = opts.location Or StringUtils.EMPTY
+    Local location = opts.location
     If StringUtils.Substring(location, 1, 2) <> "./"
         If StringUtils.Substring(location, 1, 1) = "/"
             location = "." .. location
@@ -35,7 +36,7 @@ Function Downloads:New(opts)
         location = StringUtils.Substring(location, 1, -2)
     EndIf
 
-    Local instance CopyTable(self)
+    Local instance = CopyTable(self)
     Local prefix = opts.prefix
     If prefix
         instance.stripPrefix = Not Not opts.stripPrefix
@@ -49,7 +50,7 @@ Function Downloads:New(opts)
     EndIf
 
     prefix = "/" .. prefix .. "/"
-    While FindStr(prefix, "//")
+    While FindStr(prefix, "//") > -1
         prefix = PatternReplaceStr(prefix, "//", "/")
     Wend
 

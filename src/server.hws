@@ -15,14 +15,26 @@ HollywoodExpressServer.VERSION = #EXP_SVR_VER
 
 Function HollywoodExpressServer:New(params)
     If GetType(params) <> #TABLE Then params = {}
+	Local inHost = "*"
+	If GetType(RawGet(params, "host")) = #STRING Then inHost = RawGet(params, "host")
+	Local inPort = 8080
+	If GetType(RawGet(params, "port")) = #NUMBER Then inPort = RawGet(params, "port")
+	Local inLoc = ""
+	If GetType(RawGet(params, "location")) = #STRING Then inLoc = RawGet(params, "location")
+	Local inPlugs = {}
+	If GetType(RawGet(params, "plugins")) = #TABLE Then inPlugs = RawGet(params, "plugins")
+	Local inTimeout = 1
+	If GetType(RawGet(params, "timeout")) = #NUMBER Then inTimeout = RawGet(params, "timeout")
+	Local inLog = Logger:New(#EXP_LOG_MODE_CONSOLE_ONLY)
+	If GetType(RawGet(params, "log")) = #TABLE Then inLog = RawGet(params, "log")
     
     Local instance = CopyTable(self)
-    instance.host = IIf(GetType(params.host) = #STRING, params.host, "*")
-    instance.port = IIf(GetType(params.port) = #NUMBER, params.port, 8080)
-    instance.location = IIf(GetType(params.location) = #STRING, params.location, "")
-    instance.plugins = IIf(GetType(params.plugins) = #TABLE, params.plugins, {})
-    instance.timeout = IIf(GetType(params.timeout) = #NUMBER, params.timeout, 1)
-    instance.log = IIf(GetType(params.log) = #TABLE, params.log, Logger:New(#EXP_LOG_MODE_CONSOLE_ONLY))
+    instance.host = inHost
+    instance.port = inPort
+    instance.location = inLoc
+    instance.plugins = inPlugs
+    instance.timeout = inTimeout
+    instance.log = inLog
 
     Return (instance)
 EndFunction

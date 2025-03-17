@@ -6,7 +6,7 @@
 Const #REQ_PATTERN_METHOD = "^(.-)%s"
 Const #REQ_PATTERN_PATH = "(%S+)%s*"
 Const #REQ_PATTERN_PROTOCOL = "(HTTP%/%d%.%d)"
-Const #REQ_PATTERN_REQUEST = (#REQ_PATTERN_METHOD .. #REQ_PATTERN_PATH .. #REQ_PATTERN_PROTOCOL)
+Const #REQ_PATTERN_REQUEST = #REQ_PATTERN_METHOD .. #REQ_PATTERN_PATH .. #REQ_PATTERN_PROTOCOL
 Const #REQ_PATTERN_QUERY_STRING = "([^=]*)=([^&]*)&?"
 Const #REQ_PATTERN_HEADER = "([%w-]+):[ \t]*([%w \t%p]*)"
 
@@ -38,9 +38,9 @@ Function Request:New(port, client, server, handler)
     Local instance = CopyTable(self)
     instance.client = client
     instance.server = server
-    instance.log = IIf(HaveItem(handler, "log"), handler.log, {})
+    instance.log = IIf(HaveItem(handler, "log"), RawGet(handler, "log"), {})
     instance.port = port
-    instance.ip = IIf(HaveItem(client, "ip"), client.ip, "*")
+    instance.ip = IIf(HaveItem(client, "ip"), RawGet(client, "ip"), "*")
     instance.response = Response:New(client, handler)
     instance.response.request = instance
     Return (instance)

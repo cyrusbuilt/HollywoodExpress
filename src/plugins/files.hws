@@ -1,15 +1,18 @@
 @INCLUDE "../StringLib/StringUtils.hws"
 @INCLUDE "../mimetypes.hws"
 
+; NOTE: 'default' is a hollywood keyword. Renamed to 'defalt' to prevent conflicts. This may change.
 Global Files = {}
 Files.location = Nil
-Files.default = Nil
+Files.defalt = Nil
 
 Function Files:New(options)
     options = IIf(GetType(options) = #TABLE, options, {})
     Local plugin = CopyTable(self)
 
-    Local location = IIf(GetType(options.location), options.locaion, "")
+    Local location = StringUtils.EMPTY
+	If GetType(RawGet(options, "location")) = #STRING Then location = RawGet(options, "location")
+	
     If StringUtils.Substring(location, 1, 2) <> "./"
         ; Make sure it's a relative path, forecefully!
         If StringUtils.Substring(location, 1, 1) = "/"
@@ -23,16 +26,16 @@ Function Files:New(options)
         location = StringUtils.Substring(location, 1, -2)
     EndIf
 
-    plugin.location = locaion   ; this is now a relative path, without trailing slash
+    plugin.location = location   ; this is now a relative path, without trailing slash
 
-    Local default = IIf(IsNil(options.default), "index.html", options.default)
-    If Not StringUtils.IsEmpty(default)
-        If StringUtils.Substring(default, 1, 1) <> "/"
-            default = "/" .. default
+    Local defalt = IIf(RawGet(options, "defalt") = #STRING, RawGet(options, "defalt"), "index.html")
+    If Not StringUtils.IsEmpty(defalt)
+        If StringUtils.Substring(defalt, 1, 1) <> "/"
+            defalt = "/" .. defalt
         EndIf
     EndIf
 
-    plugin.default = default    ; this is now a filename prefixed with a slash or ""
+    plugin.defalt = defalt    ; this is now a filename prefixed with a slash or ""
     Return (plugin)
 EndFunction
 
@@ -45,8 +48,8 @@ Function Files:NewRequestResponse(request, response)
 
     Local path = request:Path()
     If path = "/"
-        If Not StringUtils.IsEmpty(self.default)
-            response:Redirect(self.default)
+        If Not StringUtils.IsEmpty(self.defalt)
+            response:Redirect(self.defalt)
             stop = True
         EndIf
         Return (stop)  ; default not set, so nothing to serve

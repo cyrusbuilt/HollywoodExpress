@@ -122,12 +122,12 @@ EndFunction
 
 Function ParseRoutes(self, routes, prefix)
     Local rts = {}
-    Local routerPreFunction = routes.preFunction
-    Local routerPostFunction = routes.postFunction
+    Local routerPreFunction = IIf(GetType(RawGet(routes, "prefunction")) = #FUNCTION, RawGet(routes, "prefunction"), Function(req, res) EndFunction)
+    Local routerPostFunction = IIf(GetType(RawGet(routes, "postfunction")) = #FUNCTION, RawGet(routes, "postfunction"), Function(req, res) EndFunction)
 
     For path, methods In Pairs(routes)
-        If path <> "preFunction" And path <> "postFunction"
-            If StringUtils.Substring(path, 1, 1) <> "/"
+        If path <> "prefunction" And path <> "postfunction"
+            If Not StringUtils.StartsWith(path, "/")
                 Error("paths must start with '/', got: " .. path)
             EndIf
 
@@ -135,7 +135,8 @@ Function ParseRoutes(self, routes, prefix)
                 methods = { ["*"] = methods }
             EndIf
 
-            methods["*"] = IIf(methods["*"], methods["*"], methodNotAllowed)
+			If Not HaveItem(methods, "*") Then methods["*"] = methodNotAllowed
+			
 
             Local m = {}
             For method, callback In Pairs(methods)
@@ -143,8 +144,8 @@ Function ParseRoutes(self, routes, prefix)
                     Error("expected callback to be a function, got: " .. GetType(callback))
                 EndIf
 
-                If method <> "preFunction" And method <> "postFunction"
-                    If method <> UpperStr(method)
+                If method <> "prefunction" And method <> "postfunction"
+                    If method <> LowerStr(method)
                         Error("Expected method to be all-caps, got: " .. ToString(method))
                     EndIf
 
@@ -167,16 +168,25 @@ Function ParseRoutes(self, routes, prefix)
                 Return ("([^/]+)")
             EndFunction)
             pattern = "^" .. pattern .. "$"
+			
+			Local rtsRouterPreFunction = nopCallback
+			If GetType(RawGet(methods, "routerprefunction")) = #FUNCTION Then rtsRouterPreFunction = RawGet(methods, "routerprefunction")
+			Local rtsPreFunction = nopCallback
+			If GetType(RawGet(methods, "prefunction")) = #FUNCTION Then rtsPreFunction = RawGet(methods, "prefunction")
+			Local rtsPostFunction = nopCallback
+			If GetType(RawGet(methods, "prefunction")) = #FUNCTION Then rtsPostFunction = RawGet(methods, "postfunction")
+			Local rtsRouterPostFunction = nopCallback
+			If GetType(RawGet(methods, "routerpostfunction")) = #FUNCTION Then rtsRouterPostFunction = RawGet(methods, "routerpostfunction")
 
             ; create and store the route
             rts[TableItems(rts)] = {
                 pattern = pattern,
                 params = params,
                 methods = m,
-                routerPreFunction = IIf(GetType(routerPreFunction) = #FUNCTION, routerPreFunction, nopCallback),
-                preFunction = IIf(GetType(methods.preFunction) = #FUNCTION, methods.preFunction, nopCallback),
-                postFunction = IIf(GetType(methods.postFunction) = #FUNCTION, methods.postFunction, nopCallback),
-                routerPostFunction = IIf(GetType(routerPostFunction) = #FUNCTION, routerPostFunction, nopCallback)
+                routerPreFunction = rtsRouterPreFunction,
+                preFunction = rtsPreFunction,
+                postFunction = rtsPostFunction,
+                routerPostFunction = rtsRouterPostFunction
             }
         EndIf
     Next

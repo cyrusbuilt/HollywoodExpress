@@ -305,7 +305,7 @@ Function StringUtils.Join(inStrArray, delimiter)
 
     Local result = StringUtils.EMPTY
 	Local s
-    For s In inStrArray
+    For i,s In IPairs(inStrArray)
         If (StrLen(result) > 0)
             result = result .. delimiter
         EndIf

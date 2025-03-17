@@ -53,6 +53,7 @@ EndFunction
 
 Function Compress:ProcessBodyData(data, stayOpen, req, res)
     If IsNil(stayOpen) Then stayOpen = False
+	If IsNil(res.headersSent) Then res.headersSent = False
 
     Local acceptEncoding = StringUtils.EMPTY
     If res.headersSent
@@ -63,8 +64,10 @@ Function Compress:ProcessBodyData(data, stayOpen, req, res)
 
     Local acceptGzip = Not Not PatternFindStrShort(acceptEncoding, "gzip")
     If acceptGzip
-        Local stream = res.compressStream
-        Local buffer = res.compressBuffer
+        Local stream = Nil
+		If GetType(RawGet(res, "compressstream")) = #TABLE Then stream = RawGet(res, "compressstream")
+        Local buffer = {}
+		If GetType(RawGet(res, "compressbuffer")) = #TABLE Then buffer = RawGet(res, "compressbuffer")
 
         If IsNil(stream)
             Local writer = Function(zdata) buffer[TableItems(buffer)] = zdata EndFunction
@@ -84,7 +87,7 @@ Function Compress:ProcessBodyData(data, stayOpen, req, res)
             EndIf
 
             Local compressed = Concat(buffer)
-            For i = 1 To TableItems(buffer) Do buffer[i] = Nil Next
+            For i = 1 To TableItems(buffer) Do buffer[i] = Nil
             If Not res.headersSent
                 res:AddHeader("Content-Encoding", "gzip")
             EndIf

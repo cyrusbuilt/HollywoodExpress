@@ -42,7 +42,7 @@ EndFunction
 Function Logger:Info(msg)
     If StringUtils.IsEmpty(msg) Then Return ()
 
-    msg = "[INFO] " .. msg
+    msg = "+INFO+ " .. msg
     If self.mode = #EXP_LOG_MODE_CONSOLE_ONLY Or self.mode = #EXP_LOG_MODE_FILE_AND_CONSOLE
         NPrint(msg)
     EndIf
@@ -53,21 +53,21 @@ EndFunction
 Function Logger:Debug(msg)
     If StringUtils.IsEmpty(msg) Then Return ()
 
-    msg = "[DEBUG] " .. msg
+    msg = "+DEBUG+ " .. msg
     If self.mode = #EXP_LOG_MODE_CONSOLE_ONLY Or self.mode = #EXP_LOG_MODE_FILE_AND_CONSOLE
         DebugPrint(msg)
     EndIf
 
-    self._writeFile(msg)
+    self:_writeFile(msg)
 EndFunction
 
 Function Logger:Error(msg)
     If StringUtils.IsEmpty(msg) Then Return ()
 
-    msg = "[ERROR] " .. msg
+    msg = "+ERROR+ " .. msg
     If self.mode = #EXP_LOG_MODE_CONSOLE_ONLY Or self.mode = #EXP_LOG_MODE_FILE_AND_CONSOLE
         NPrint(msg)
     EndIf
 
-    self._writeFile(msg)
+    self:_writeFile(msg)
 EndFunction

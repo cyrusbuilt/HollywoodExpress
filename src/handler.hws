@@ -10,7 +10,7 @@ Handler.plugins = {}
 
 Function Handler:PluginsAlterRequestResponseMetatable()
     For _, plugin In IPairs(self.plugins)
-        If plugin.AlterRequestResponseMetatable
+        If GetType(RawGet(plugin, "alterrequestresponsemetatable")) = #FUNCTION
             Local stop = plugin:AlterRequestResponseMetatable(Request, Response)
             If stop Then Return (stop)
         EndIf
@@ -18,7 +18,7 @@ Function Handler:PluginsAlterRequestResponseMetatable()
 EndFunction
 
 Function Handler:New(callback, location, plugins, logger)
-    If GetType(logger) <> #TABLE Then = logger = {}
+    If GetType(logger) <> #TABLE Then logger = {}
     If GetType(callback) <> #FUNCTION Then callback = Function(req, res) Return (True) EndFunction
     If GetType(plugins) <> #TABLE Then plugins = {}
 
@@ -28,13 +28,13 @@ Function Handler:New(callback, location, plugins, logger)
     instance.plugins = plugins
     
     If Not StringUtils.IsEmpty(location)
-        handler.plugins[TableItems(handler.plugins)] = Files:New({
+        instance.plugins[TableItems(instance.plugins)] = Files:New({
             location = location,
-            default = "/index.html"
+            defalt = "/index.html"
         })
-        handler.log:Debug(FormatStr("Handler created, location: %s", location))
+        instance.log:Debug(FormatStr("Handler created, location: %s", location))
     Else
-        handler.log:Debug("Handler created, without location")
+        instance.log:Debug("Handler created, without location")
     EndIf
 
     instance:PluginsAlterRequestResponseMetatable()
@@ -75,7 +75,7 @@ Function Handler:PluginsAfterProcess(req, res)
             Local stop = plugin:AfterProcess(req, res)
             If stop Then Return (stop)
         EndIf
-    EndIf
+    Next
 EndFunction
 
 Function Handler:PluginsProcessFile(req, res, filename)
