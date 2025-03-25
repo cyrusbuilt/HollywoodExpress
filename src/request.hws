@@ -68,21 +68,25 @@ Function Request:ParseUrlEncoded(data)
 EndFunction
 
 Function Request:ParseFirstLine()
-    If Not StringUtils.IsEmpty(self._firstLine)
+    If HaveItem(self, "_firstline") And Not StringUtils.IsEmpty(self._firstLine)
         Return ()
     EndIf
 
-    Local count = 0
-    Local done = False
-    self._firstLine, count, done = self.client:Receive()
-    If IsNil(self._firstLine) Or done Or count = 0
+    Local data$, count, done = self.client:Receive()
+	DebugPrint("data: " .. data$)
+	DebugPrint("count: " .. ToString(count))
+	DebugPrint("done: " .. ToString(done))
+    If GetType(data$) = #NIL Or count = 0
         Return ()
     EndIf
+	
+	self._firstLine = data$
 
     ; Parse firstline http: METHOD PATH
     ; GET Makefile HTTP/1.1
     Local method, path = PatternFindStrShort(self._firstLine, #REQ_PATTERN_REQUEST)
     If StringUtils.IsEmpty(method)
+		DebugPrint("Closing from ParseFirstLine()")
         self.client:Close()
         Return ()
     EndIf
@@ -105,12 +109,18 @@ EndFunction
 
 Function Request:Method()
     self:ParseFirstLine()
-    Return (self._method)
+    If HaveItem(self, "_method")
+		Return (self._method)
+	EndIf
+	Return (Nil)
 EndFunction
 
 Function Request:Path()
     self:ParseFirstLine()
-    Return (self._path)
+	If HaveItem(self, "_path")
+		Return (self._path)
+	EndIf
+    Return (Nil)
 EndFunction
 
 Function Request:Headers()

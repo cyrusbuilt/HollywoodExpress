@@ -43,7 +43,7 @@ EndFunction
 
 Function Handler:PluginsNewConnection(client)
     For _, plugin In IPairs(self.plugins)
-        If plugin.NewConnection
+        If GetType(RawGet(plugin, "newconnection")) = #FUNCTION
             client = plugin:NewConnection(client, self)
             If IsNil(client) Then Return (False)
         EndIf
@@ -53,7 +53,7 @@ EndFunction
 
 Function Handler:PluginsNewRequestResponse(req, res)
     For _, plugin In IPairs(self.plugins)
-        If plugin.NewRequestResponse
+        If GetType(RawGet(plugin, "newrequestresponse")) = #FUNCTION
             Local stop = plugin:NewRequestResponse(req, res)
             If stop Then Return (stop)
         EndIf
@@ -62,7 +62,7 @@ EndFunction
 
 Function Handler:PluginsBeforeProcess(req, res)
     For _, plugin In IPairs(self.plugins)
-        If plugin.BeforeProcess
+        If GetType(RawGet(plugin, "beforeprocess")) = #FUNCTION
             Local stop = plugin:BeforeProcess(req, res)
             If stop Then Return (stop)
         EndIf
@@ -71,7 +71,7 @@ EndFunction
 
 Function Handler:PluginsAfterProcess(req, res)
     For _, plugin In IPairs(self.plugins)
-        If plugin.AfterProcess
+        If GetType(RawGet(plugin, "afterprocess")) = #FUNCTION
             Local stop = plugin:AfterProcess(req, res)
             If stop Then Return (stop)
         EndIf
@@ -80,7 +80,7 @@ EndFunction
 
 Function Handler:PluginsProcessFile(req, res, filename)
     For _, plugin In IPairs(self.plugins)
-        If plugin.ProcessFile
+        If GetType(RawGet(plugin, "processfile")) = #FUNCTION
             Local stop = plugin:ProcessFile(req, res, filename)
             If stop Then Return (stop)
         EndIf
@@ -90,7 +90,7 @@ EndFunction
 Function Handler:ProcessBodyData(data, stayOpen, res)
     Local localData = data
     For _, plugin In IPairs(self.plugins)
-        If plugin.ProcessBodyData
+        If GetType(RawGet(plugin, "processbodydata")) = #FUNCTION
             localData = plugin:ProcessBodyData(localData, stayOpen, res.request, res)
         EndIf
     Next
@@ -100,7 +100,7 @@ EndFunction
 
 Function Handler:ProcessRequest(port, client, server)
     client = self:PluginsNewConnection(client)
-    If Not client
+    If IsNil(client)
         Return (False)
     EndIf
 
@@ -116,7 +116,7 @@ Function Handler:ProcessRequest(port, client, server)
     Local stop = self:PluginsNewRequestResponse(req, res)
     If stop Then Return ()
 
-    If self.callback
+    If GetType(RawGet(self, "callback")) = #FUNCTION
         res:StatusCode(200)
         res.headers = {}
         res:AddHeader("Content-Type", "text/html")

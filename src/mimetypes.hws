@@ -249,7 +249,7 @@ Function MimeTypes.Guess(filename, db)
     EndIf
 
     Local ext = p_MimeTypes_Extension(filename)
-    If Not StringUtils.IsEmpty(ext)
+    If ext <> -1 And Not StringUtils.IsEmpty(ext)
         Return (db.extensions[ext])
     EndIf
 

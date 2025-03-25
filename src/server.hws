@@ -49,7 +49,7 @@ Function HollywoodExpressServer:Listen(callback)
     
     While True
         Local client, errMsg = server:Accept()
-        If client
+        If Not IsNil(client)
             client:SetTimeout(self.timeout)
             handler:ProcessRequest(self.port, client, server)
         Else

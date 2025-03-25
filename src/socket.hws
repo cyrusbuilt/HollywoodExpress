@@ -42,6 +42,7 @@ Function Socket.Client:GetPeerName()
 EndFunction
 
 Function Socket.Client:Close()
+	DebugPrint("*** CLOSING SOCKET CLIENT ***")
     If self._closed Then Return ()
     self.serverId = Nil
     self.clientId = Nil
@@ -67,7 +68,7 @@ Function Socket.Server:FindClientById(clientId)
 	Local foundClient = Nil
 	Local n, i = NextItem(self._clients)
 	While GetType(n) <> #NIL
-		If i.clientId = clientId
+		If HaveItem(i, "clientid") And i.clientId = clientId
 			foundClient = i
 			Break
 		EndIf
@@ -85,11 +86,16 @@ Function Socket.Server:New(ip$, port)
     InstallEventHandler({
         OnConnect = Function(eventData)
             Local client = Socket.Client:New(eventData.ServerID, eventData.ClientID)
-            InsertItem(self._clients, client)
+            InsertItem(instance._clients, client)
+			DebugPrint("Client added: " .. client.ip)
+			DebugPrint("ListItems: " .. ToString(ListItems(instance._clients)))
+			DebugPrint("TableItems: " .. ToString(TableItems(instance._clients)))
         EndFunction,
         OnDisconnect = Function(eventData)
-			Local client = self:FindClientById(eventData.ID)
+			DebugPrint("OnDisconnect()")
+			Local client = instance:FindClientById(eventData.ID)
 			If Not IsNil(client)
+				DebugPrint("Closing from OnDisconnect")
 				client:Close()
 				; TODO remove from client list
 			EndIf
@@ -122,6 +128,7 @@ Function Socket.Server:Accept()
     Until TableItems(self._clients) > 0 Or TimerElapsed(timerId)
 
     StopTimer(timerId)
+	DebugPrint("Total clients: " .. ToString(TableItems(self._clients)))
     Local client = GetItem(self._clients, -1)
     Return (client, IIf(IsNil(client), "timeout", "success"))
 EndFunction
@@ -131,7 +138,8 @@ Function Socket.Server:Close()
     InstallEventHandler({OnConnect=Nil, OnDisconnect=Nil, OnReceiveData=Nil})
     
     Local n, i = NextItem(self._clients)
-    While GetType(n) <> #NIL
+    While GetType(n) <> #nil
+		DebugPrint("Closing from server Close()")
         i:Close()
         n, i = NextItem(self._clients, n)
     Wend

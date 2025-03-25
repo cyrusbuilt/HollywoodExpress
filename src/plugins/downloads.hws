@@ -59,7 +59,7 @@ Function Downloads:New(opts)
     Return (instance)
 EndFunction
 
-Function Downloads:NewRequestResponse()
+Function Downloads:NewRequestResponse(req, res)
     Local stop = False
 
     Local method = req:Method()

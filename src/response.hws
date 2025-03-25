@@ -168,7 +168,7 @@ Function Response:SendHeaders(stayOpen, body)
     ts = "!" .. GetWeekday() .. ", " .. ts .. " GMT"
     self:AddHeader("Date", ts)
 
-    If IsNil(RawGet("content-type"))
+    If IsNil(RawGet(self._headers, "content-type"))
         self:AddHeader("Content-Type", "text/html")
     EndIf
 

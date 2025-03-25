@@ -53,13 +53,13 @@ EndFunction
 
 Function Compress:ProcessBodyData(data, stayOpen, req, res)
     If IsNil(stayOpen) Then stayOpen = False
-	If IsNil(res.headersSent) Then res.headersSent = False
+	If GetType(RawGet(res, "headerssent")) = #NIL Then res.headersSent = False
 
     Local acceptEncoding = StringUtils.EMPTY
     If res.headersSent
-        acceptEncoding = res.headers["Content-Encoding"] Or StringUtils.EMPTY
+		acceptEncoding = IIf(HaveItem(res.headers, "content-encoding"), RawGet(res.headers, "content-encoding"), StringUtils.EMPTY)
     Else
-        acceptEncoding = res.headers["Accept-Encoding"] Or StringUtils.EMPTY
+        acceptEncoding = IIf(HaveItem(res.headers, "accept-encoding"), RawGet(res.headers, "accept-encoding"), StringUtils.EMPTY)
     EndIf
 
     Local acceptGzip = Not Not PatternFindStrShort(acceptEncoding, "gzip")
