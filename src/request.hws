@@ -30,6 +30,7 @@ Request.pathParameters = {}
 Request.routerPath = StringUtils.EMPTY
 
 Function Request:New(port, client, server, handler)
+	DebugPrint("Request:New()")
     If GetType(client) <> #TABLE Then client = {}
     If GetType(server) <> #TABLE Then server = {}
     If GetType(handler) <> #TABLE Then handler = {}
@@ -47,6 +48,7 @@ Function Request:New(port, client, server, handler)
 EndFunction
 
 Function Request:ParseUrlEncoded(data)
+	DebugPrint("Request:ParseUrlEncoded()")
     Local output = {}
     If Not StringUtils.IsEmpty(data)
         For key, value In PatternFindStr(data, #REQ_PATTERN_QUERY_STRING)
@@ -68,6 +70,7 @@ Function Request:ParseUrlEncoded(data)
 EndFunction
 
 Function Request:ParseFirstLine()
+	DebugPrint("Request:ParseFirstLine()")
     If HaveItem(self, "_firstline") And Not StringUtils.IsEmpty(self._firstLine)
         Return ()
     EndIf
@@ -85,12 +88,13 @@ Function Request:ParseFirstLine()
     ; Parse firstline http: METHOD PATH
     ; GET Makefile HTTP/1.1
     Local method, path = PatternFindStrShort(self._firstLine, #REQ_PATTERN_REQUEST)
-    If StringUtils.IsEmpty(method)
+    If (GetType(method) = #STRING And StringUtils.IsEmpty(method)) Or (GetType(method) = #number And method = -1)
 		DebugPrint("Closing from ParseFirstLine()")
         self.client:Close()
         Return ()
     EndIf
 
+	DebugPrint("Method: " .. method)
     self.response:SkipBody(method = "HEAD")
     self.log:Info(FormatStr("Request for: %s %s", method, path))
     
@@ -108,6 +112,7 @@ Function Request:ParseFirstLine()
 EndFunction
 
 Function Request:Method()
+	DebugPrint("Request:Method()")
     self:ParseFirstLine()
     If HaveItem(self, "_method")
 		Return (self._method)
@@ -116,6 +121,7 @@ Function Request:Method()
 EndFunction
 
 Function Request:Path()
+	DebugPrint("Request:Path()")
     self:ParseFirstLine()
 	If HaveItem(self, "_path")
 		Return (self._path)
@@ -124,6 +130,7 @@ Function Request:Path()
 EndFunction
 
 Function Request:Headers()
+	DebugPrint("Request:Headers()")
     If self._headerParsed
         Return (self._headers)
     EndIf
@@ -169,6 +176,7 @@ Function Request:Headers()
 EndFunction
 
 Function Request:ReceiveBody(size)
+	DebugPrint("Request:ReceiveBody()")
     If Not self._headerParsed
         self:Headers()
     EndIf
@@ -191,6 +199,7 @@ Function Request:ReceiveBody(size)
 EndFunction
 
 Function Request:Post()
+	DebugPrint("Request:Post()")
     If self:Method() <> "POST" Then Return (Nil)
     Local data = self:ReceiveBody(Nil)
     Return (self:ParseUrlEncoded(data))

@@ -116,11 +116,13 @@
 Global nopCallback = Function() Return (False) EndFunction
 
 Function methodNotAllowed(req, res)
+	DebugPrint("methodNotAllowed()")
     res:WriteDefaultErrorMessage(405)
     Return (False)
 EndFunction
 
 Function ParseRoutes(self, routes, prefix)
+	DebugPrint("ParseRoutes()")
     Local rts = {}
     Local routerPreFunction = IIf(GetType(RawGet(routes, "prefunction")) = #FUNCTION, RawGet(routes, "prefunction"), Function(req, res) EndFunction)
     Local routerPostFunction = IIf(GetType(RawGet(routes, "postfunction")) = #FUNCTION, RawGet(routes, "postfunction"), Function(req, res) EndFunction)
@@ -206,6 +208,7 @@ Router.routes = {}
 ; @tparam opts.routes table route definitions to be handled by this router plugin instance.
 ; @return the new plugin
 Function Router:New(opts)
+	DebugPrint("Router:New()")
     If GetType(opts) <> #TABLE Then opts = {}
     If Not opts.routes Then opts.routes = {}
     Local prefix = "/" .. (opts.prefix Or StringUtils.EMPTY) .. "/"
@@ -221,6 +224,7 @@ Function Router:New(opts)
 EndFunction
 
 Function Router:NewRequestResponse(req, res)
+	DebugPrint("Router:NewRequestResponse()")
     Local stop = False
 
     Local path = req:Path()

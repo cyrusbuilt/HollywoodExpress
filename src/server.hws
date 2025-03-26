@@ -14,6 +14,7 @@ HollywoodExpressServer.log = {}
 HollywoodExpressServer.VERSION = #EXP_SVR_VER
 
 Function HollywoodExpressServer:New(params)
+	DebugPrint("HollywoodExpressServer:New()")
     If GetType(params) <> #TABLE Then params = {}
 	Local inHost = "*"
 	If GetType(RawGet(params, "host")) = #STRING Then inHost = RawGet(params, "host")
@@ -40,6 +41,7 @@ Function HollywoodExpressServer:New(params)
 EndFunction
 
 Function HollywoodExpressServer:Listen(callback)
+	DebugPrint("HollywoodExpressServer:Listen()")
     Local handler = Handler:New(callback, self.location, self.plugins, self.log)
     Local server = Socket.Bind(self.host, self.port)
     Local ip, port = server:GetSocketName()

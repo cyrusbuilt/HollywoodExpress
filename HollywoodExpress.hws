@@ -1,6 +1,7 @@
 @INCLUDE "src/server.hws"
 
 Function Express(params)
+	DebugPrint("Express()")
     Local server = HollywoodExpressServer:New(params)
     Return (server)
 EndFunction

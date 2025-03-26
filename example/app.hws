@@ -92,7 +92,7 @@ Global server = Express({
             prefix = "/api/1v0",
             routes = routes
         }),
-        Compress:New()
+        ;Compress:New()
     }
 })
 

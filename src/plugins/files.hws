@@ -7,6 +7,7 @@ Files.location = Nil
 Files.defalt = Nil
 
 Function Files:New(options)
+	DebugPrint("Files:New()")
     options = IIf(GetType(options) = #TABLE, options, {})
     Local plugin = CopyTable(self)
 
@@ -40,6 +41,7 @@ Function Files:New(options)
 EndFunction
 
 Function Files:NewRequestResponse(request, response)
+	DebugPrint("Files:NewRequestResponse()")
     Local stop = False
     Local method = request:Method()
     If method <> "GET" And method <> "HEAD"

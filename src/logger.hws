@@ -10,6 +10,7 @@ Logger._fileId = Nil
 Logger._canWrite = False
 
 Function Logger:New(logMode, filePath)
+	DebugPrint("Logger:New()")
     If GetType(logMode) <> #NUMBER Then logMode = #EXP_LOG_MODE_CONSOLE_ONLY
 
     Local instance = CopyTable(self)
@@ -32,6 +33,7 @@ Function Logger:New(logMode, filePath)
 EndFunction
 
 Function Logger:_writeFile(msg)
+	DebugPrint("Logger:_writeFile()")
     If self.mode = #EXP_LOG_MODE_FILE_AND_CONSOLE Or self.mode = #EXP_LOG_MODE_FILE_ONLY
         If self._canWrite
             WriteLine(self._fileId, msg)
@@ -40,6 +42,7 @@ Function Logger:_writeFile(msg)
 EndFunction
 
 Function Logger:Info(msg)
+	DebugPrint("Logger:Info()")
     If StringUtils.IsEmpty(msg) Then Return ()
 
     msg = "+INFO+ " .. msg
@@ -51,6 +54,7 @@ Function Logger:Info(msg)
 EndFunction
 
 Function Logger:Debug(msg)
+	DebugPrint("Logger:Debug()")
     If StringUtils.IsEmpty(msg) Then Return ()
 
     msg = "+DEBUG+ " .. msg
@@ -62,6 +66,7 @@ Function Logger:Debug(msg)
 EndFunction
 
 Function Logger:Error(msg)
+	DebugPrint("Logger:Error()")
     If StringUtils.IsEmpty(msg) Then Return ()
 
     msg = "+ERROR+ " .. msg

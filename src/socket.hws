@@ -17,6 +17,7 @@ Socket.Client.port = 0
 Socket.Client._closed = True
 
 Function Socket.Client:New(serverId, clientId)
+	DebugPrint("Socket.Client:New()")
     Local instance = CopyTable(self)
     instance.serverId = serverId
     instance.clientId = clientId
@@ -27,12 +28,14 @@ Function Socket.Client:New(serverId, clientId)
 EndFunction
 
 Function Socket.Client:SetTimeout(timeout)
+	DebugPrint("Socket.Client:SetTimeout()")
     If self._closed Then Return ()
     If IsNil(timeout) Then timeout = 1
     self.timeout = timeout
 EndFunction
 
 Function Socket.Client:GetPeerName()
+	DebugPrint("Socket.Client:GetPeerName()")
     If self._closed Then Return (Nil)
     Local builder = StringBuilder:New()
     builder:Append(self.ip)
@@ -42,6 +45,7 @@ Function Socket.Client:GetPeerName()
 EndFunction
 
 Function Socket.Client:Close()
+	DebugPrint("Socket.Client:Close()")
 	DebugPrint("*** CLOSING SOCKET CLIENT ***")
     If self._closed Then Return ()
     self.serverId = Nil
@@ -51,6 +55,7 @@ Function Socket.Client:Close()
 EndFunction
 
 Function Socket.Client:Receive(byteCount)
+	DebugPrint("Socket.Client:Receive()")
     If self._closed Then Return (Nil, 0, True)
     If GetType(byteCount) <> #NUMBER Or byteCount = 0
         Return (ReceiveData(self.clientId, #RECEIVELINE))
@@ -60,11 +65,13 @@ Function Socket.Client:Receive(byteCount)
 EndFunction
 
 Function Socket.Client:Send(data)
+	DebugPrint("Socket.Client:Send()")
     If IsNil(self.clientId) Then Return (0)
     Return (SendData(self.clientId, data))
 EndFunction
 
 Function Socket.Server:FindClientById(clientId)
+	DebugPrint("Socket.Server:FindClientById()")
 	Local foundClient = Nil
 	Local n, i = NextItem(self._clients)
 	While GetType(n) <> #NIL
@@ -79,14 +86,18 @@ Function Socket.Server:FindClientById(clientId)
 EndFunction
 
 Function Socket.Server:New(ip$, port)
+	DebugPrint("Socket.Server:New()")
     If StringUtils.IsEmpty(ip$) Then ip$ = "*"
     If GetType(port) <> #NUMBER Or port <= 0 Then port = 8080
     Local instance = CopyTable(self)
     instance.id = CreateServer(Nil, port, ip$, Nil, #IPAUTO)
     InstallEventHandler({
         OnConnect = Function(eventData)
-            Local client = Socket.Client:New(eventData.ServerID, eventData.ClientID)
-            InsertItem(instance._clients, client)
+			Local client = instance:FindClientById(eventData.ClientID)
+			If IsNil(client)
+				client = Socket.Client:New(eventData.ServerID, eventData.ClientID)
+				InsertItem(instance._clients, client)
+			EndIf
 			DebugPrint("Client added: " .. client.ip)
 			DebugPrint("ListItems: " .. ToString(ListItems(instance._clients)))
 			DebugPrint("TableItems: " .. ToString(TableItems(instance._clients)))
@@ -109,17 +120,20 @@ Function Socket.Server:New(ip$, port)
 EndFunction
 
 Function Socket.Server:GetSocketName()
+	DebugPrint("Socket.Server:GetSocketName()")
     If self._closed Then Return (Nil)
     Return (self.ip, self.port)
 EndFunction
 
 Function Socket.Server:SetTimeout(timeout)
+	DebugPrint("Socket.Server:SetTimeout()")
     If self._closed Then Return ()
     If IsNil(timeout) Then timeout = 1
     self.timeout = timeout
 EndFunction
 
 Function Socket.Server:Accept()
+	DebugPrint("Socket.Server:Accept()")
     If self._closed Then Return (Nil)
     Local timerId = StartTimer(Nil, self.timeout)
 
@@ -134,6 +148,7 @@ Function Socket.Server:Accept()
 EndFunction
 
 Function Socket.Server:Close()
+	DebugPrint("Socket.Server:Close()")
     If self._closed Then Return ()
     InstallEventHandler({OnConnect=Nil, OnDisconnect=Nil, OnReceiveData=Nil})
     
@@ -150,6 +165,7 @@ Function Socket.Server:Close()
 EndFunction
 
 Function Socket.bind(ip$, port)
+	DebugPrint("Socket.bind()")
     Local server = Socket.Server:New(ip$, port)
     Return (server)
 EndFunction

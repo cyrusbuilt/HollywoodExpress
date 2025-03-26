@@ -143,7 +143,7 @@ Function StringUtils.PadCenter(input, pad, len)
 EndFunction
 
 Function StringUtils.StringLength(inString)
-    Return (StrLen(inString))
+    Return (StrLen(inString, #ENCODING_RAW))
 EndFunction
 
 Function StringUtils.StripPrettyPrintChars(inString)
