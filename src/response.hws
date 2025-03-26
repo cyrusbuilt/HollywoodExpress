@@ -205,8 +205,8 @@ Function Response:Write(body, stayOpen)
     EndIf
 
     If self._isClosed
-		DebugPrint("Closing from response write")
-        self._client:Close()  ; TODO we can probably remove this. a non-chunked body can also be sent in multiple pieces
+		;DebugPrint("Closing from response write")
+        ;self._client:Close()  ; TODO we can probably remove this. a non-chunked body can also be sent in multiple pieces
     EndIf
 
     Return (self)

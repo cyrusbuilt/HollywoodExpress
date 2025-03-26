@@ -48,6 +48,7 @@ Function Socket.Client:Close()
 	DebugPrint("Socket.Client:Close()")
 	DebugPrint("*** CLOSING SOCKET CLIENT ***")
     If self._closed Then Return ()
+	CloseConnection(self.clientId)
     self.serverId = Nil
     self.clientId = Nil
     self.timeout = 1
@@ -73,16 +74,18 @@ EndFunction
 Function Socket.Server:FindClientById(clientId)
 	DebugPrint("Socket.Server:FindClientById()")
 	Local foundClient = Nil
+	Local clientIndex = -1
 	Local n, i = NextItem(self._clients)
 	While GetType(n) <> #NIL
 		If HaveItem(i, "clientid") And i.clientId = clientId
 			foundClient = i
+			clientIndex = n
 			Break
 		EndIf
 		n, i = NextItem(self._clients, n)
 	Wend
 	
-	Return (foundClient)
+	Return (foundClient, clientIndex)
 EndFunction
 
 Function Socket.Server:New(ip$, port)
@@ -93,7 +96,8 @@ Function Socket.Server:New(ip$, port)
     instance.id = CreateServer(Nil, port, ip$, Nil, #IPAUTO)
     InstallEventHandler({
         OnConnect = Function(eventData)
-			Local client = instance:FindClientById(eventData.ClientID)
+			DebugPrint("OnConnect()")
+			Local client, idx = instance:FindClientById(eventData.ClientID)
 			If IsNil(client)
 				client = Socket.Client:New(eventData.ServerID, eventData.ClientID)
 				InsertItem(instance._clients, client)
@@ -104,11 +108,11 @@ Function Socket.Server:New(ip$, port)
         EndFunction,
         OnDisconnect = Function(eventData)
 			DebugPrint("OnDisconnect()")
-			Local client = instance:FindClientById(eventData.ID)
+			Local client, idx = instance:FindClientById(eventData.ID)
 			If Not IsNil(client)
 				DebugPrint("Closing from OnDisconnect")
 				client:Close()
-				; TODO remove from client list
+				RemoveItem(instance._clients, idx)
 			EndIf
         EndFunction,
         OnReceiveData = Function(eventData)

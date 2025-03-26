@@ -118,6 +118,7 @@ Function Handler:ProcessRequest(port, client, server)
 
     Local method = req:Method()
     If StringUtils.IsEmpty(method)
+		DebugPrint("Closing client from Handler:ProcessRequest() due to empty method")
         client:Close()
         Return ()
     EndIf
