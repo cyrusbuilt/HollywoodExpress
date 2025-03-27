@@ -12,6 +12,9 @@ HollywoodExpressServer.plugins = {}
 HollywoodExpressServer.timeout = 1
 HollywoodExpressServer.log = {}
 HollywoodExpressServer.VERSION = #EXP_SVR_VER
+HollywoodExpressServer.stopped = True
+HollywoodExpressServer.listener = Nil
+HollywoodExpressServer.handler = Nil
 
 Function HollywoodExpressServer:New(params)
 	DebugPrint("HollywoodExpressServer:New()")
@@ -40,16 +43,37 @@ Function HollywoodExpressServer:New(params)
     Return (instance)
 EndFunction
 
+Function HollywoodExpressServer:Shutdown()
+	If self.stopped Then Return ()
+	NPrint("Server shutting down...")
+	self.handler.log:Info("Server shutting down...")
+	self.stopped = True
+EndFunction
+
+Function HollywoodExpressServer:OnShutdownRequest(event)
+	Local ctrlMod = (event.modifiers = #modlcontrol Or event.modifiers = #MODRCONTROL)
+	If event.key = "C" And ctrlMod
+		self:Shutdown()
+	EndIf
+EndFunction
+
+
 Function HollywoodExpressServer:Listen(callback)
+	CtrlCQuit(False)  ; We are going to install our own handler for this.
 	DebugPrint("HollywoodExpressServer:Listen()")
     Local handler = Handler:New(callback, self.location, self.plugins, self.log)
     Local server = Socket.Bind(self.host, self.port)
     Local ip, port = server:GetSocketName()
+	self.stopped = False
+	self.listener = server
+	self.handler = handler
+	InstallEventHandler({ OnRawKeyUp = Function(event) self:OnShutdownRequest(event) EndFunction })
 
     NPrint("Express v" .. self.VERSION ..  " is up on " .. ip .. ":" .. ToString(port))
-    handler.log:Info(FormatStr("Express v%s is up on %s:%s", self.VERSION, ip, port))
+    NPrint("Press 'CTRL-C' to quit")
+	handler.log:Info(FormatStr("Express v%s is up on %s:%s", self.VERSION, ip, port))
     
-    While True
+    While Not self.stopped
         Local client, errMsg = server:Accept()
         If Not IsNil(client)
             client:SetTimeout(self.timeout)
@@ -58,4 +82,9 @@ Function HollywoodExpressServer:Listen(callback)
             handler.log:Error(FormatStr("Failed to accept connection: %s", errMsg))
         EndIf
     Wend
+	
+	server:Close()
+	InstallEventHandler({ OnRawKeyUp = Nil })
+	self.listener = Nil
+	self.handler = Nil
 EndFunction

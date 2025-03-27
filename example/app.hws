@@ -79,6 +79,7 @@ Global routes = {
 
 Global server = Express({
     port = 8080,
+	; NOTE: Every plugin will add processing overhead
     plugins = {
         Downloads:New({
             location = "/example/root/",
@@ -92,7 +93,8 @@ Global server = Express({
             prefix = "/api/1v0",
             routes = routes
         }),
-        ;Compress:New()
+		; Uncomment below to test compression
+        ; Compress:New()
     }
 })
 

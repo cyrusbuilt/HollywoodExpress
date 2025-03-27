@@ -37,7 +37,7 @@ EndFunction
 
 Function ZlibStream:Close()
 	DebugPrint("ZlibStream:Close()")
-    If self._isClosed Then Return ()
+    If self.isClosed Then Return ()
     self.writer = Nil
     self._compFilename = Nil
     self.isClosed = True
@@ -49,6 +49,7 @@ Compress.options = {}
 Function Compress:New(opts)
 	DebugPrint("Compress:New()")
     If GetType(opts) <> #TABLE Then opts = {}
+	; TODO We aren't doing anything with opts. Probably just get rid of it.
 
     Local instance = CopyTable(self)
     instance.options = opts
@@ -69,10 +70,13 @@ Function Compress:ProcessBodyData(data, stayOpen, req, res)
 
     Local acceptGzip = Not Not PatternFindStrShort(acceptEncoding, "gzip")
     If acceptGzip
-        Local stream = Nil
-		If GetType(RawGet(res, "compressstream")) = #TABLE Then stream = RawGet(res, "compressstream")
+        Local stream = nil
+		Local tmpStream = RawGet(res, "compressstream")
+		If GetType(tmpStream) = #TABLE Then stream = tmpStream
+		
         Local buffer = {}
-		If GetType(RawGet(res, "compressbuffer")) = #TABLE Then buffer = RawGet(res, "compressbuffer")
+		Local tmpBuffer = RawGet(res, "compressbuffer")
+		If GetType(tmpBuffer) = #TABLE Then buffer = tmpBuffer
 
         If IsNil(stream)
             Local writer = Function(zdata) buffer[TableItems(buffer)] = zdata EndFunction

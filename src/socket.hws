@@ -157,7 +157,7 @@ Function Socket.Server:Close()
     InstallEventHandler({OnConnect=Nil, OnDisconnect=Nil, OnReceiveData=Nil})
     
     Local n, i = NextItem(self._clients)
-    While GetType(n) <> #nil
+    While GetType(n) <> #NIL
 		DebugPrint("Closing from server Close()")
         i:Close()
         n, i = NextItem(self._clients, n)
@@ -168,7 +168,7 @@ Function Socket.Server:Close()
     self._closed = True
 EndFunction
 
-Function Socket.bind(ip$, port)
+Function Socket.Bind(ip$, port)
 	DebugPrint("Socket.bind()")
     Local server = Socket.Server:New(ip$, port)
     Return (server)

@@ -130,7 +130,8 @@ Function Response:StatusCode(statusCode, statusText)
 
     self.status = statusCode
     self._headerFirstLine = PatternReplaceStr(self._templateFirstLine, "{{ STATUS_CODE }}", ToString(statusCode))
-    Local text = IIf(IsNil(statusText), IIf(IsNil(STATUS_TEXT[statusCode]), "Unknown status " .. ToString(statusCode), STATUS_TEXT[statusCode]), statusText)
+	Local unknownStat = "Unknown status " .. ToString(statusCode)
+    Local text = IIf(IsNil(statusText), IIf(IsNil(STATUS_TEXT[statusCode]), unknownStat, STATUS_TEXT[statusCode]), statusText)
     self._headerFirstLine = PatternReplaceStr(self._headerFirstLine, "{{ STATUS_TEXT }}", text)
     Return (self)
 EndFunction
@@ -206,7 +207,8 @@ Function Response:Write(body, stayOpen)
 
     If self._isClosed
 		;DebugPrint("Closing from response write")
-        ;self._client:Close()  ; TODO we can probably remove this. a non-chunked body can also be sent in multiple pieces
+        ;self._client:Close()  ; TODO we can probably remove this. a non-chunked body can
+		; also be sent in multiple pieces
     EndIf
 
     Return (self)
