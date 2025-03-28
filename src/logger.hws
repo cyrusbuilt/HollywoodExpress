@@ -32,6 +32,13 @@ Function Logger:New(logMode, filePath)
     Return (instance)
 EndFunction
 
+Function Logger:_getTimestamp()
+	Local ts = TimestampToDate(GetTimestamp(#TIMESTAMP_UNIX), True)
+    ts = StringUtils.StringReplace(ts, "-", StringUtils.DEFAULT_PAD_CHAR, True)
+    ts = StringUtils.Substring(GetWeekday(), 0, 3) .. ", " .. ts .. " GMT"
+	Return ("[[" .. ts .. "]]")
+EndFunction
+
 Function Logger:_writeFile(msg)
 	DebugPrint("Logger:_writeFile()")
     If self.mode = #EXP_LOG_MODE_FILE_AND_CONSOLE Or self.mode = #EXP_LOG_MODE_FILE_ONLY
@@ -45,7 +52,7 @@ Function Logger:Info(msg)
 	DebugPrint("Logger:Info()")
     If StringUtils.IsEmpty(msg) Then Return ()
 
-    msg = "+INFO+ " .. msg
+    msg = self:_getTimestamp() .. " +INFO+ " .. msg
     If self.mode = #EXP_LOG_MODE_CONSOLE_ONLY Or self.mode = #EXP_LOG_MODE_FILE_AND_CONSOLE
         NPrint(msg)
     EndIf
@@ -57,7 +64,7 @@ Function Logger:Debug(msg)
 	DebugPrint("Logger:Debug()")
     If StringUtils.IsEmpty(msg) Then Return ()
 
-    msg = "+DEBUG+ " .. msg
+    msg = self:_getTimestamp() .. " +DEBUG+ " .. msg
     If self.mode = #EXP_LOG_MODE_CONSOLE_ONLY Or self.mode = #EXP_LOG_MODE_FILE_AND_CONSOLE
         DebugPrint(msg)
     EndIf
@@ -69,7 +76,7 @@ Function Logger:Error(msg)
 	DebugPrint("Logger:Error()")
     If StringUtils.IsEmpty(msg) Then Return ()
 
-    msg = "+ERROR+ " .. msg
+    msg = self:_getTimestamp() .. " +ERROR+ " .. msg
     If self.mode = #EXP_LOG_MODE_CONSOLE_ONLY Or self.mode = #EXP_LOG_MODE_FILE_AND_CONSOLE
         NPrint(msg)
     EndIf

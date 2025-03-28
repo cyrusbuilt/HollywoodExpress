@@ -39,8 +39,8 @@ Function Socket.Client:GetPeerName()
     If self._closed Then Return (Nil)
     Local builder = StringBuilder:New()
     builder:Append(self.ip)
+	builder:Append(":")
     builder:Append(ToString(self.port))
-    builder.Append(GetConnectionProtocol(self.clientId))
     Return (builder:ToString())
 EndFunction
 

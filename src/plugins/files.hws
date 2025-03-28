@@ -29,7 +29,7 @@ Function Files:New(options)
 
     plugin.location = location   ; this is now a relative path, without trailing slash
 
-    Local defalt = IIf(RawGet(options, "defalt") = #STRING, RawGet(options, "defalt"), "index.html")
+    Local defalt = IIf(GetType(RawGet(options, "defalt")) = #STRING, RawGet(options, "defalt"), "index.html")
     If Not StringUtils.IsEmpty(defalt)
         If StringUtils.Substring(defalt, 1, 1) <> "/"
             defalt = "/" .. defalt

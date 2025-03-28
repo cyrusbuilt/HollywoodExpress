@@ -124,8 +124,12 @@ EndFunction
 Function ParseRoutes(self, routes, prefix)
 	DebugPrint("ParseRoutes()")
     Local rts = {}
-    Local routerPreFunction = IIf(GetType(RawGet(routes, "prefunction")) = #FUNCTION, RawGet(routes, "prefunction"), Function(req, res) EndFunction)
-    Local routerPostFunction = IIf(GetType(RawGet(routes, "postfunction")) = #FUNCTION, RawGet(routes, "postfunction"), Function(req, res) EndFunction)
+	Local routerPreFunction = Function(req, res) EndFunction
+	Local inPreFunction = RawGet(routes, "prefunction")
+	If GetType(inPreFunction) = #FUNCTION Then routerPreFunction = inPreFunction
+	Local routerPostFunction = Function(req, res) EndFunction
+	Local inPostFunction = RawGet(routes, "postfunction")
+    If GetType(inPostFunction) = #FUNCTION Then routerPostFunction = inPostFunction
 
     For path, methods In Pairs(routes)
         If path <> "prefunction" And path <> "postfunction"
@@ -172,13 +176,20 @@ Function ParseRoutes(self, routes, prefix)
             pattern = "^" .. pattern .. "$"
 			
 			Local rtsRouterPreFunction = nopCallback
-			If GetType(RawGet(methods, "routerprefunction")) = #FUNCTION Then rtsRouterPreFunction = RawGet(methods, "routerprefunction")
+			Local rtrPreFunc = RawGet(methods, "routerprefunction")
+			If GetType(rtrPreFunc) = #FUNCTION Then rtsRouterPreFunction = rtrPreFunc
+			
 			Local rtsPreFunction = nopCallback
-			If GetType(RawGet(methods, "prefunction")) = #FUNCTION Then rtsPreFunction = RawGet(methods, "prefunction")
+			Local preFunc = RawGet(methods, "prefunction")
+			If GetType(preFunc) = #FUNCTION Then rtsPreFunction = preFunc
+			
 			Local rtsPostFunction = nopCallback
-			If GetType(RawGet(methods, "prefunction")) = #FUNCTION Then rtsPostFunction = RawGet(methods, "postfunction")
+			Local postFunc = RawGet(methods, "postfunction")
+			If GetType(postFunc) = #FUNCTION Then rtsPostFunction = postFunc
+			
 			Local rtsRouterPostFunction = nopCallback
-			If GetType(RawGet(methods, "routerpostfunction")) = #FUNCTION Then rtsRouterPostFunction = RawGet(methods, "routerpostfunction")
+			Local rtrPostFunc = RawGet(methods, "routerpostfunction")
+			If GetType(rtrPostFunc) = #FUNCTION Then rtsRouterPostFunction = rtrPostFunc
 
             ; create and store the route
             rts[TableItems(rts)] = {

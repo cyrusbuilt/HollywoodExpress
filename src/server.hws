@@ -51,7 +51,7 @@ Function HollywoodExpressServer:Shutdown()
 EndFunction
 
 Function HollywoodExpressServer:OnShutdownRequest(event)
-	Local ctrlMod = (event.modifiers = #modlcontrol Or event.modifiers = #MODRCONTROL)
+	Local ctrlMod = (event.modifiers = #MODLCONTROL Or event.modifiers = #MODRCONTROL)
 	If event.key = "C" And ctrlMod
 		self:Shutdown()
 	EndIf

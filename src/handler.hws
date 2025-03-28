@@ -115,6 +115,7 @@ Function Handler:ProcessRequest(port, client, server)
 
     Local req = Request:New(port, client, server, self)
     Local res = req.response
+	self.log:Info(FormatStr("Incoming request from: %s", req.client:GetPeerName()))
 
     Local method = req:Method()
     If StringUtils.IsEmpty(method)

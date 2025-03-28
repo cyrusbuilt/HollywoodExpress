@@ -129,8 +129,9 @@ Function Response:StatusCode(statusCode, statusText)
     EndIf
 
     self.status = statusCode
-    self._headerFirstLine = PatternReplaceStr(self._templateFirstLine, "{{ STATUS_CODE }}", ToString(statusCode))
-	Local unknownStat = "Unknown status " .. ToString(statusCode)
+	Local statStr = ToString(statusCode)
+    self._headerFirstLine = PatternReplaceStr(self._templateFirstLine, "{{ STATUS_CODE }}", statStr)
+	Local unknownStat = "Unknown status " .. statStr
     Local text = IIf(IsNil(statusText), IIf(IsNil(STATUS_TEXT[statusCode]), unknownStat, STATUS_TEXT[statusCode]), statusText)
     self._headerFirstLine = PatternReplaceStr(self._headerFirstLine, "{{ STATUS_TEXT }}", text)
     Return (self)
