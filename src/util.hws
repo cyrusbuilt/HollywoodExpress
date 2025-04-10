@@ -12,7 +12,7 @@ Function HEUtils.NormalizePath(path)
     value, _n = PatternReplaceStr(value, "^/*", "/")
     value, _n = PatternReplaceStr(value, "(/%.%.?)$", "%1/")
     value, _n = PatternReplaceStr(value, "/%./", "/")
-    value, _n = PatternReplaceStr(value, "/*", "/")
+    value, _n = PatternReplaceStr(value, "/+", "/")
 
     While True
         Local first, last = PatternFindStrDirect(value, "/[^/]+/%.%./")

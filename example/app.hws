@@ -18,12 +18,14 @@
 @INCLUDE "../src/plugins/router.hws"
 @INCLUDE "../src/plugins/compress.hws"
 
+; Set up some test data
 Global testData = {
     Jane = { firstName = "Jane", lastName = "Doe", age = 25 },
     John = { firstName = "John", lastName = "Doe", age = 30 }
 }
 
-Global routes = {
+; Set up some routes
+Global serverRoutes = {
     ; router-level preFunction runs before the method prefunction and callback
     preFunction = Function(req, res)
 		DebugPrint("in preFunction")
@@ -78,29 +80,32 @@ Global routes = {
     }
 }
 
+; Here we create the server.
 Global server = Express({
     port = 8080,
 	; NOTE: Every plugin will add processing overhead
     plugins = {
-        Downloads:New({
-            location = "/example/root/",
-            prefix = "downloads",
-            stripPrefix = True
-        }),
-        Files:New({
-            location = "/example/root"
-        }),
+        ;Downloads:New({
+            ;location = "/example/root/",
+            ;prefix = "downloads",
+            ;stripPrefix = True
+        ;}),
+        ;Files:New({
+            ;location = "/example/root"
+        ;}),
         Router:New({
             prefix = "/api/1v0",
-            routes = routes
+            routes = serverRoutes
         }),
 		; Uncomment below to test compression
         ; Compress:New()
     }
 })
 
+; Now we start up.
 NPrint("starting server!")
 server:Listen(Function(req, res)
+	DebugPrint("Server callback()")
     Local stop = False
     Local path = req:Path()
     If req:Method() <> "POST" Or path <> "/index.html"

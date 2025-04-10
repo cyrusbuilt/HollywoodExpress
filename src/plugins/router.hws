@@ -118,11 +118,13 @@ Global nopCallback = Function() Return (False) EndFunction
 Function methodNotAllowed(req, res)
 	DebugPrint("methodNotAllowed()")
     res:WriteDefaultErrorMessage(405)
-    Return (False)
+    Return (True)
 EndFunction
 
 Function ParseRoutes(self, routes, prefix)
 	DebugPrint("ParseRoutes()")
+	If GetType(routes) <> #TABLE Then routes = {}
+
     Local rts = {}
 	Local routerPreFunction = Function(req, res) EndFunction
 	Local inPreFunction = RawGet(routes, "prefunction")
@@ -170,7 +172,7 @@ Function ParseRoutes(self, routes, prefix)
 
             Local params = {}
             Local pattern = PatternReplaceStr(path, "{(%w+)}", Function(name)
-                params[TableItems(params)] = name
+                params[TableItems(params) + 1] = name
                 Return ("([^/]+)")
             EndFunction)
             pattern = "^" .. pattern .. "$"
@@ -221,15 +223,17 @@ Router.routes = {}
 Function Router:New(opts)
 	DebugPrint("Router:New()")
     If GetType(opts) <> #TABLE Then opts = {}
-    If Not opts.routes Then opts.routes = {}
-    Local prefix = "/" .. (opts.prefix Or StringUtils.EMPTY) .. "/"
+    If Not HaveItem(opts, "routes") Then opts.routes = {}
+	If Not HaveItem(opts, "prefix") Then opts.prefix = StringUtils.EMPTY
+
+    Local prefix = "/" .. opts.prefix .. "/"
     While FindStr(prefix, "//")
         prefix = PatternReplaceStr(prefix, "//", "/")
     Wend
 
     Local instance = CopyTable(self)
     instance.prefix = StringUtils.Substring(prefix, 1, -2)  ; drop trailing slash
-    instance.plugins = ParseRoutes(instance, opts.routes)
+    instance.routes = ParseRoutes(instance, opts.routes)
 
     Return (instance)
 EndFunction
@@ -239,15 +243,22 @@ Function Router:NewRequestResponse(req, res)
     Local stop = False
 
     Local path = req:Path()
+	DebugPrint("Original path: " .. path)
+	DebugPrint("Prefix: " .. self.prefix)
     If StringUtils.Substring(path, 1, StringUtils.StringLength(self.prefix)) <> self.prefix
+		DebugPrint("Prefixes don't match! Not processing router functions!")
         Return (stop)
     EndIf
 
-    path = StringUtils.Substring(path, StringUtils.StringLength(self.prefix) + 1, -1)
-
+    ;path = StringUtils.Substring(path, StringUtils.StringLength(self.prefix) + 1, -1)
+	DebugPrint("Path: " .. path)
+	DebugPrint("Routes: " .. SerializeTable(self.routes))
+	
     For _, route In IPairs(self.routes)
         Local matches = { PatternFindStrShort(path, route.pattern) }
-        If Not IsNil(matches[1])
+		DebugPrint("Matches: " .. SerializeTable(matches))
+        If TableItems(matches) > 0
+			DebugPrint("Found route match")
             ; we have a match
             Local p = {}
             For i, paramName In IPairs(route.params)
@@ -261,8 +272,13 @@ Function Router:NewRequestResponse(req, res)
             If stop Then Break
             stop = route.preFunction(req, res)
             If stop Then Break
-            stop = route.methods[req:Method()](req, res)
-            If stop Then Break
+			Local method = LowerStr(req:Method())
+			DebugPrint("Method: " .. method)
+			DebugPrint("Methods table: " .. SerializeTable(route.methods))
+			If HaveItem(route.methods, method)
+				stop = route.methods[method](req, res)
+            	If stop Then Break
+			EndIf
             stop = route.postFunction(req, res)
             If stop Then Break
             route.routerPostFunction(req, res)
