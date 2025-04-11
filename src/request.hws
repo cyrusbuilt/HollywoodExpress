@@ -88,7 +88,7 @@ Function Request:ParseFirstLine()
     ; Parse firstline http: METHOD PATH
     ; GET Makefile HTTP/1.1
     Local method, path = PatternFindStrShort(self._firstLine, #REQ_PATTERN_REQUEST)
-    If (GetType(method) = #STRING And StringUtils.IsEmpty(method)) Or (GetType(method) = #number And method = -1)
+    If (GetType(method) = #STRING And StringUtils.IsEmpty(method)) Or (GetType(method) = #NUMBER And method = -1)
 		DebugPrint("Closing from ParseFirstLine()")
         self.client:Close()
         Return ()
@@ -149,7 +149,7 @@ Function Request:Headers()
 
     While Not StringUtils.IsEmpty(data)
         Local _n = Nil
-        Local key, value = PatternFindStr(data, #REQ_PATTERN_HEADER)
+        Local key, value = PatternFindStrShort(data, #REQ_PATTERN_HEADER)
         If Not StringUtils.IsEmpty(key) And Not StringUtils.IsEmpty(value)
             key = LowerStr(key)
             value, _n = PatternReplaceStr(value, "%s+$", "")  ; trim trailing whitespace

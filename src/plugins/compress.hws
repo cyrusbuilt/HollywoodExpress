@@ -65,7 +65,8 @@ Function Compress:ProcessBodyData(data, stayOpen, req, res)
     If res.headersSent
 		acceptEncoding = IIf(HaveItem(res.headers, "content-encoding"), RawGet(res.headers, "content-encoding"), StringUtils.EMPTY)
     Else
-        acceptEncoding = IIf(HaveItem(res.headers, "accept-encoding"), RawGet(res.headers, "accept-encoding"), StringUtils.EMPTY)
+		Local headers = req:Headers()
+        acceptEncoding = IIf(HaveItem(headers, "accept-encoding"), RawGet(headers, "accept-encoding"), StringUtils.EMPTY)
     EndIf
 
     Local acceptGzip = Not Not PatternFindStrShort(acceptEncoding, "gzip")
