@@ -91,7 +91,6 @@ Response.compressStream = Nil
 Response.compressBuffer = Nil
 
 Function Response:New(client, writeHandler)
-	DebugPrint("Response:New()")
 	Local instance = CopyTable(self)
    	instance.log = writeHandler.log
    	instance._client = client
@@ -100,7 +99,6 @@ Function Response:New(client, writeHandler)
 EndFunction
 
 Function Response:AddHeader(key, value)
-	DebugPrint("Response:AddHeader()")
     If self._headerSent
         Error("Can't add header, they are already sent")
     EndIf
@@ -110,7 +108,6 @@ Function Response:AddHeader(key, value)
 EndFunction
 
 Function Response:AddHeaders(params)
-	DebugPrint("Response:AddHeaders()")
     For key, value In Pairs(params)
         self:AddHeader(key, value)
     Next
@@ -118,12 +115,10 @@ Function Response:AddHeaders(params)
 EndFunction
 
 Function Response:ContentType(value)
-	DebugPrint("Response:ContentType()")
     Return self:AddHeader("Content-Type", value)
 EndFunction
 
 Function Response:StatusCode(statusCode, statusText)
-	DebugPrint("Response:StatusCode()")
     If self._headerSent
         Error("Can't set status code, it was already sent")
     EndIf
@@ -138,13 +133,11 @@ Function Response:StatusCode(statusCode, statusText)
 EndFunction
 
 Function Response:SkipBody(skip)
-	DebugPrint("Response:SkipBody()")
     If IsNil(skip) Then skip = True
     self._skipBody = Not Not skip
 EndFunction
 
 Function Response:_getHeaders()
-	DebugPrint("Response:_getHeaders()")
     Local headers = {}
     For headerName, headerValue In Pairs(self._headers)
         If GetType(headerValue) = #TABLE And TableItems(headerValue) > 0
@@ -160,14 +153,12 @@ Function Response:_getHeaders()
 EndFunction
 
 Function Response:SendHeaders(stayOpen, body)
-	DebugPrint("Response:SendHeaders()")
     If IsNil(stayOpen) Then stayOpen = False
     
     If self._headerSent
         Return (self)
     EndIf
 
-	DebugPrint("stayOpen: " .. stayOpen)
     If stayOpen
         self:AddHeader("Transfer-Encoding", "chunked")
     ElseIf GetType(body) = #STRING
@@ -190,10 +181,8 @@ Function Response:SendHeaders(stayOpen, body)
 EndFunction
 
 Function Response:Write(body, stayOpen)
-	DebugPrint("Response:Write()")
     If IsNil(body) Then body = StringUtils.EMPTY
 	If IsNil(stayOpen) Then stayOpen = False
-	DebugPrint("res write stayOpen: " .. stayOpen)
     body = self._writeHandler:ProcessBodyData(body, stayOpen, self)
     self:SendHeaders(stayOpen, body)
 
@@ -207,7 +196,6 @@ Function Response:Write(body, stayOpen)
     EndIf
 
     If self._isClosed
-		;DebugPrint("Closing from response write")
         ;self._client:Close()  ; TODO we can probably remove this. a non-chunked body can
 		; also be sent in multiple pieces
     EndIf
@@ -216,14 +204,12 @@ Function Response:Write(body, stayOpen)
 EndFunction
 
 Function Response:SendOnlyHeaders()
-	DebugPrint("Response:SendOnlyHeaders()")
     self:SendHeaders(False, StringUtils.EMPTY)
     self:Write("\r\n")
     Return (self)
 EndFunction
 
 Function Response:Close()
-	DebugPrint("Response:Close()")
     If Not self.closed
         Local body = self._writeHandler:ProcessBodyData(Nil, True, self)
         If Not self._skipBody
@@ -242,7 +228,6 @@ Function Response:Close()
 EndFunction
 
 Function Response:WriteDefaultErrorMessage(statusCode, errMsg)
-	DebugPrint("Response:WriteDefaultErrorMessage()")
     self:StatusCode(statusCode)
     Local content = PatternReplaceStr(DEFAULT_ERROR_MESSAGE, "{{ STATUS_CODE }}", statusCode)
     Local stat = IIf(StringUtils.IsEmpty(errMsg), STATUS_TEXT[statusCode], errMsg)
@@ -253,7 +238,6 @@ Function Response:WriteDefaultErrorMessage(statusCode, errMsg)
 EndFunction
 
 Function Response:ReadFile(filename)
-	DebugPrint("Response:ReadFile()")
     ExitOnError(False)
     Local fileId = OpenFile(Nil, filename, #MODE_READ)
     If IsNil(fileId)
@@ -268,7 +252,6 @@ Function Response:ReadFile(filename)
 EndFunction
 
 Function Response:WriteFile(filename, contentType)
-	DebugPrint("Response:WriteFile()")
     Local errMsg = "success"
     If GetType(filename) <> #STRING
         ; Deprecated backward compatibility; file is a file-descriptor
@@ -297,7 +280,6 @@ Function Response:WriteFile(filename, contentType)
 EndFunction
 
 Function Response:SendFile(path)
-	DebugPrint("Response:SendFile()")
     Local filename = PatternFindStrShort(path, "[^/]*$")  ; only filename, no path
     self:AddHeader("Content-Disposition", "attachment; filename=\"" .. filename .. "\"")
 
@@ -311,7 +293,6 @@ Function Response:SendFile(path)
 EndFunction
 
 Function Response:Redirect(location, isTemporary)
-	DebugPrint("Response:Redirect()")
     self:StatusCode(IIf(isTemporary, 302, 301))
     self:AddHeader("Location", location)
     self:SendOnlyHeaders()

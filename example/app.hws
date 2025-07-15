@@ -28,7 +28,6 @@ Global testData = {
 Global serverRoutes = {
     ; router-level preFunction runs before the method prefunction and callback
     preFunction = Function(req, res)
-		DebugPrint("in preFunction")
         Local stop = False
         Local headers = req:Headers()
         Local accept = LowerStr((headers.accept Or "*/*"))
@@ -38,12 +37,10 @@ Global serverRoutes = {
             res:WriteDefaultErrorMessage(406, "This API only produces 'application/json'")
             stop = True
         EndIf
-		DebugPrint("returning stop = " .. ToString(stop))
         Return (stop)
     EndFunction,
     ["/people"] = {
         GET = Function(req, res)
-			DebugPrint("in GET /people")
             res:StatusCode(200)
             res:AddHeader("Content-Type", "application/json")
             res:Write(SerializeTable(testData))
@@ -52,7 +49,6 @@ Global serverRoutes = {
     ["/people/{name}"] = {
         ; path-level preFunction runs before the actual method callback
         preFunction = Function(req, res)
-			DebugPrint("in /people/{name} preFunction")
             Local stop = False
             Local name = req.pathParameters.name
             If Not testData[name]
@@ -65,14 +61,12 @@ Global serverRoutes = {
         EndFunction,
         ; callback per method
         GET = Function(req, res)
-			DebugPrint("in /people/{name} GET")
             res:StatusCode(200)
             res:AddHeader("Content-Type", "application/json")
             res:Write(SerializeTable(testData[req.pathParameters.name]))
         EndFunction,
         ; postFunction runs after the actual method callback
         postFunction = Function(req, res)
-			DebugPrint("in /people/{name} postFunction")
             Local stop = False
             req.log:Debug(FormatStr("served %s's data", req.pathParameters.name))
             Return (stop)
@@ -105,7 +99,6 @@ Global server = Express({
 ; Now we start up.
 NPrint("starting server!")
 server:Listen(Function(req, res)
-	DebugPrint("Server callback()")
     Local stop = False
     Local path = req:Path()
     If req:Method() <> "POST" Or path <> "/index.html"

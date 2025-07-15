@@ -3,7 +3,6 @@
 Global HEUtils = {}
 
 Function HEUtils.NormalizePath(path)
-	DebugPrint("HEUtils.NormalizePath()")
     If StringUtils.IsEmpty(path)
         Return (StringUtils.EMPTY)
     EndIf
@@ -37,7 +36,6 @@ Function HEUtils.NormalizePath(path)
 EndFunction
 
 Function HEUtils.ToHex(dec)
-	DebugPrint("HEUtils.ToHex()")
     Local charset = { '0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f' }
     Local tmp = {}
 

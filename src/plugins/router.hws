@@ -105,10 +105,10 @@
 ;   EndFunction,
 ; }
 ;
-; local router = Router:new {
+; local router = Router:New({
 ;   prefix = "/api/1v0/",
 ;   routes = routes,
-; }
+; })
 
 
 @INCLUDE "../StringLib/StringUtils.hws"
@@ -116,13 +116,12 @@
 Global nopCallback = Function() Return (False) EndFunction
 
 Function methodNotAllowed(req, res)
-	DebugPrint("methodNotAllowed()")
     res:WriteDefaultErrorMessage(405)
     Return (True)
 EndFunction
 
 Function ParseRoutes(self, routes, prefix)
-	DebugPrint("ParseRoutes()")
+    ; TODO We aren't doing anything with 'self' or 'prefix'. Can probably get rid of them.
 	If GetType(routes) <> #TABLE Then routes = {}
 
     Local rts = {}
@@ -145,7 +144,6 @@ Function ParseRoutes(self, routes, prefix)
 
 			If Not HaveItem(methods, "*") Then methods["*"] = methodNotAllowed
 			
-
             Local m = {}
             For method, callback In Pairs(methods)
                 If GetType(callback) <> #FUNCTION
@@ -221,7 +219,6 @@ Router.routes = {}
 ; @tparam opts.routes table route definitions to be handled by this router plugin instance.
 ; @return the new plugin
 Function Router:New(opts)
-	DebugPrint("Router:New()")
     If GetType(opts) <> #TABLE Then opts = {}
     If Not HaveItem(opts, "routes") Then opts.routes = {}
 	If Not HaveItem(opts, "prefix") Then opts.prefix = StringUtils.EMPTY
@@ -239,26 +236,16 @@ Function Router:New(opts)
 EndFunction
 
 Function Router:NewRequestResponse(req, res)
-	DebugPrint("Router:NewRequestResponse()")
     Local stop = False
 
     Local path = req:Path()
-	DebugPrint("Original path: " .. path)
-	DebugPrint("Prefix: " .. self.prefix)
     If StringUtils.Substring(path, 1, StringUtils.StringLength(self.prefix)) <> self.prefix
-		DebugPrint("Prefixes don't match! Not processing router functions!")
         Return (stop)
     EndIf
-
-    ;path = StringUtils.Substring(path, StringUtils.StringLength(self.prefix) + 1, -1)
-	DebugPrint("Path: " .. path)
-	DebugPrint("Routes: " .. SerializeTable(self.routes))
 	
     For _, route In IPairs(self.routes)
         Local matches = { PatternFindStrShort(path, route.pattern) }
-		DebugPrint("Matches: " .. SerializeTable(matches))
         If TableItems(matches) > 0
-			DebugPrint("Found route match")
             ; we have a match
             Local p = {}
             For i, paramName In IPairs(route.params)
@@ -272,13 +259,13 @@ Function Router:NewRequestResponse(req, res)
             If stop Then Break
             stop = route.preFunction(req, res)
             If stop Then Break
+
 			Local method = LowerStr(req:Method())
-			DebugPrint("Method: " .. method)
-			DebugPrint("Methods table: " .. SerializeTable(route.methods))
 			If HaveItem(route.methods, method)
 				stop = route.methods[method](req, res)
             	If stop Then Break
 			EndIf
+
             stop = route.postFunction(req, res)
             If stop Then Break
             route.routerPostFunction(req, res)

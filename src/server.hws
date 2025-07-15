@@ -17,7 +17,6 @@ HollywoodExpressServer.listener = Nil
 HollywoodExpressServer.handler = Nil
 
 Function HollywoodExpressServer:New(params)
-	DebugPrint("HollywoodExpressServer:New()")
     If GetType(params) <> #TABLE Then params = {}
 	Local inHost = "*"
 	If GetType(RawGet(params, "host")) = #STRING Then inHost = RawGet(params, "host")
@@ -57,10 +56,8 @@ Function HollywoodExpressServer:OnShutdownRequest(event)
 	EndIf
 EndFunction
 
-
 Function HollywoodExpressServer:Listen(callback)
 	CtrlCQuit(False)  ; We are going to install our own handler for this.
-	DebugPrint("HollywoodExpressServer:Listen()")
     Local handler = Handler:New(callback, self.location, self.plugins, self.log)
     Local server = Socket.Bind(self.host, self.port)
     Local ip, port = server:GetSocketName()

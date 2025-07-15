@@ -20,7 +20,6 @@ Downloads.prefix = StringUtils.EMPTY
 ; then it defaults to `true`.
 ; @return the new plugin
 Function Downloads:New(opts)
-	DebugPrint("Downloads:New()")
     If GetType(opts) <> #TABLE Then opts = {}
 	If GetType(RawGet(opts, "location")) <> #STRING Then opts.location = StringUtils.EMPTY
 
@@ -61,7 +60,6 @@ Function Downloads:New(opts)
 EndFunction
 
 Function Downloads:NewRequestResponse(req, res)
-	DebugPrint("Downloads:NewRequestResponse()")
     Local stop = False
 
     Local method = req:Method()

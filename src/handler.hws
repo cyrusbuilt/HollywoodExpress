@@ -9,7 +9,6 @@ Handler.callback = Function() EndFunction
 Handler.plugins = {}
 
 Function Handler:PluginsAlterRequestResponseMetatable()
-	DebugPrint("Handler:PluginsAlterRequestResponseMetatable()")
     For _, plugin In IPairs(self.plugins)
         If GetType(RawGet(plugin, "alterrequestresponsemetatable")) = #FUNCTION
             Local stop = plugin:AlterRequestResponseMetatable(Request, Response)
@@ -19,7 +18,6 @@ Function Handler:PluginsAlterRequestResponseMetatable()
 EndFunction
 
 Function Handler:New(callback, location, plugins, logger)
-	DebugPrint("Handler:New()")
     If GetType(logger) <> #TABLE Then logger = {}
     If GetType(callback) <> #FUNCTION Then callback = Function(req, res) Return (True) EndFunction
     If GetType(plugins) <> #TABLE Then plugins = {}
@@ -44,7 +42,6 @@ Function Handler:New(callback, location, plugins, logger)
 EndFunction
 
 Function Handler:PluginsNewConnection(client)
-	DebugPrint("Handler:PluginsNewConnection()")
     For _, plugin In IPairs(self.plugins)
         If GetType(RawGet(plugin, "newconnection")) = #FUNCTION
             client = plugin:NewConnection(client, self)
@@ -55,7 +52,6 @@ Function Handler:PluginsNewConnection(client)
 EndFunction
 
 Function Handler:PluginsNewRequestResponse(req, res)
-	DebugPrint("Handler:PluginsNewRequestResponse()")
     For _, plugin In IPairs(self.plugins)
         If GetType(RawGet(plugin, "newrequestresponse")) = #FUNCTION
             Local stop = plugin:NewRequestResponse(req, res)
@@ -65,7 +61,6 @@ Function Handler:PluginsNewRequestResponse(req, res)
 EndFunction
 
 Function Handler:PluginsBeforeProcess(req, res)
-	DebugPrint("Handler:PluginsBeforeProcess()")
     For _, plugin In IPairs(self.plugins)
         If GetType(RawGet(plugin, "beforeprocess")) = #FUNCTION
             Local stop = plugin:BeforeProcess(req, res)
@@ -75,7 +70,6 @@ Function Handler:PluginsBeforeProcess(req, res)
 EndFunction
 
 Function Handler:PluginsAfterProcess(req, res)
-	DebugPrint("Handler:PluginsAfterProcess()")
     For _, plugin In IPairs(self.plugins)
         If GetType(RawGet(plugin, "afterprocess")) = #FUNCTION
             Local stop = plugin:AfterProcess(req, res)
@@ -85,7 +79,6 @@ Function Handler:PluginsAfterProcess(req, res)
 EndFunction
 
 Function Handler:PluginsProcessFile(req, res, filename)
-	DebugPrint("Handler:PluginsProcessFile()")
     For _, plugin In IPairs(self.plugins)
         If GetType(RawGet(plugin, "processfile")) = #FUNCTION
             Local stop = plugin:ProcessFile(req, res, filename)
@@ -95,7 +88,6 @@ Function Handler:PluginsProcessFile(req, res, filename)
 EndFunction
 
 Function Handler:ProcessBodyData(data, stayOpen, res)
-	DebugPrint("Handler:ProcessBodyData()")
     Local localData = data
     For _, plugin In IPairs(self.plugins)
         If GetType(RawGet(plugin, "processbodydata")) = #FUNCTION
@@ -107,7 +99,6 @@ Function Handler:ProcessBodyData(data, stayOpen, res)
 EndFunction
 
 Function Handler:ProcessRequest(port, client, server)
-	DebugPrint("Handler:ProcessRequest()")
     client = self:PluginsNewConnection(client)
     If IsNil(client)
         Return (False)
@@ -119,7 +110,7 @@ Function Handler:ProcessRequest(port, client, server)
 
     Local method = req:Method()
     If StringUtils.IsEmpty(method)
-		DebugPrint("Closing client from Handler:ProcessRequest() due to empty method")
+		self.log:Info("Closing client from Handler:ProcessRequest() due to empty method")
         client:Close()
         Return ()
     EndIf

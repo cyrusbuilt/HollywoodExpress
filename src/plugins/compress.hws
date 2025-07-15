@@ -6,7 +6,6 @@ ZlibStream.writer = Nil
 ZlibStream._compFilename = Nil
 
 Function ZlibStream:New(writer)
-	DebugPrint("ZlibStream:New()")
     If GetType(writer) <> #FUNCTION Then writer = Function(chunk) Return (chunk) EndFunction
 
     Local instance = CopyTable(self)
@@ -16,7 +15,6 @@ Function ZlibStream:New(writer)
 EndFunction
 
 Function ZlibStream:Write(chunk)
-	DebugPrint("ZlibStream:Write()")
     If self.isClosed Then Return ()
     Local id = OpenFile(Nil, self._compFilename, #MODE_WRITE)
     WriteBytes(id, chunk)
@@ -36,7 +34,6 @@ Function ZlibStream:Write(chunk)
 EndFunction
 
 Function ZlibStream:Close()
-	DebugPrint("ZlibStream:Close()")
     If self.isClosed Then Return ()
     self.writer = Nil
     self._compFilename = Nil
@@ -47,7 +44,6 @@ Global Compress = {}
 Compress.options = {}
 
 Function Compress:New(opts)
-	DebugPrint("Compress:New()")
     If GetType(opts) <> #TABLE Then opts = {}
 	; TODO We aren't doing anything with opts. Probably just get rid of it.
 
@@ -57,7 +53,6 @@ Function Compress:New(opts)
 EndFunction
 
 Function Compress:ProcessBodyData(data, stayOpen, req, res)
-	DebugPrint("Compress:ProcessBodyData()")
     If IsNil(stayOpen) Then stayOpen = False
 	If GetType(RawGet(res, "headerssent")) = #NIL Then res.headersSent = False
 

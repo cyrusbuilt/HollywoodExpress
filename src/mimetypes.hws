@@ -1,12 +1,10 @@
 @INCLUDE "StringLib/StringUtils.hws"
 
 Function p_MimeTypes_Extension(filename)
-	DebugPrint("p_MimeTypes_Extension()")
     Return (PatternFindStrShort(filename, ".+%.([%a%d]+)$"))
 EndFunction
 
 Function p_MimeTypes_Copy(tbl)
-	DebugPrint("p_MimeTypes_Copy()")
     Local ntbl = {}
     For key, value In Pairs(tbl)
         If GetType(value) = #TABLE
@@ -240,13 +238,11 @@ filenames["README"] = "text/plain"
 Global MimeTypes = {}
 
 Function MimeTypes.Copy(db)
-	DebugPrint("MimeTypes.Copy()")
     db = IIf(IsNil(db), mt_defaultdb, db)
     Return (p_MimeTypes_Copy(db))
 EndFunction
 
 Function MimeTypes.Guess(filename, db)
-	DebugPrint("MimeTypes.Guess()")
     db = IIf(IsNil(db), mt_defaultdb, db)
     If HaveItem(db.filenames, filename)
         Return (db.filenames(filename))
